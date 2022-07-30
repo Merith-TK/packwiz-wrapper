@@ -24,7 +24,7 @@ var list = []string{
 }
 
 var (
-	Version = "0.0.1"
+	Version = "0.1.1"
 
 	// flags
 	flagHelp    = flag.Bool("h", false, "show help")
