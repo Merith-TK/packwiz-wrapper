@@ -1,0 +1,16 @@
+as you can see any line that doesnt start with `https://`
+gets completely ignored! this makes it possible to allow
+for reading from an markdown file at some point!
+
+curseforge works!
+https://www.curseforge.com/minecraft/mc-mods/sodium
+
+
+so does modrinth!
+https://modrinth.com/mod/fabric-api
+
+
+it doesnt do anything else at the moment as
+I havent implemented making custom mod.pw.toml
+files yet!
+https://sketchysite.com/mods/iris
