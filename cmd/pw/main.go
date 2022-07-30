@@ -61,6 +61,12 @@ func main() {
 		return
 	}
 
+	// check for pack.toml in flagPackDir
+	if _, err := os.Stat(*flagPackDir + "pack.toml"); err != nil {
+		fmt.Println("[PackWrap] \n[ERROR] pack.toml not found in", *flagPackDir)
+		return
+	}
+
 	if *flagImport != "" {
 		importFromFile()
 		return
