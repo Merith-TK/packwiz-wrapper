@@ -29,15 +29,20 @@ var (
 	// flags
 	flagHelp    = flag.Bool("h", false, "show help")
 	flagVersion = flag.Bool("v", false, "show version")
-	flagPackDir = flag.String("d", ".", "pack directory")
+	flagPackDir = flag.String("d", ".", "pack directory (when used with -b this is where the modpacks are located")
+	flagBatch   = flag.Bool("b", false, "batch build")
+
+	flagRefresh = flag.Bool("r", false, "refresh modpack after operations")
 
 	// import file
 	flagImport = flag.String("i", "", "import links from file")
+
+	args []string
 )
 
 func main() {
 	flag.Parse()
-	args := flag.Args()
+	args = flag.Args()
 
 	if _, err := exec.LookPath("packwiz"); err != nil {
 		fmt.Println("[PackWrap] \n[ERROR] packwiz is not installed,\nplease install it with 'go install github.com/packwiz/packwiz@latest'")
@@ -46,44 +51,49 @@ func main() {
 
 	if !strings.HasSuffix(*flagPackDir, "/") {
 		*flagPackDir += "/"
-		fmt.Println("[PackWrap] PackDir:", *flagPackDir)
-
 	}
+	fmt.Println("[PackWrap] PackDir:", *flagPackDir)
+
 	if *flagVersion {
 		fmt.Println("[PackWrap] version:", Version)
 		return
 	}
 	if *flagHelp {
-		fmt.Println("[PackWrap]")
+		//fmt.Println("[PackWrap]")
 		flag.Usage()
 		fmt.Println("")
-		packwiz([]string{"help"})
+		packwiz(*flagPackDir, []string{"help"})
 		return
 	}
-
-	// check for pack.toml in flagPackDir
-	if _, err := os.Stat(*flagPackDir + "pack.toml"); err != nil {
-		fmt.Println("[PackWrap] \n[ERROR] pack.toml not found in", *flagPackDir)
-		return
-	}
-
 	if *flagImport != "" {
+		if *flagBatch {
+			fmt.Println("[PackWrap] [ERROR] -b and -i conflict")
+			return
+		}
 		importFromFile()
 		return
 	}
 
-	if len(args) > 0 {
-		packwiz(args)
-		return
+	if *flagBatch {
+		fmt.Println("[PackWrap] Batch mode\n")
+		batchMode(*flagPackDir, args)
+	} else {
+		packwiz(*flagPackDir, args)
+		if *flagRefresh {
+			packwiz(*flagPackDir, []string{"refresh"})
+		}
 	}
-	packwiz([]string{"refresh"})
 
 }
 
-func packwiz(args []string) {
-	fmt.Println("[PackWrap] Handoff: packwiz", strings.Join(args, " "))
+func packwiz(dir string, args []string) {
+	fmt.Println("[PackWrap] Handoff: ["+dir+"] packwiz", strings.Join(args, " "))
 	cmd := exec.Command("packwiz", args...)
-	cmd.Dir = filepath.Dir(*flagPackDir)
+	cmd.Dir = filepath.Dir(dir)
+	if _, err := os.Stat(cmd.Dir); err != nil {
+		fmt.Println("[PackWrap] [ERROR] packwiz directory not found, creating...")
+		os.Mkdir(cmd.Dir, 0755)
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -117,7 +127,27 @@ func importFromFile() {
 				fmt.Println("[ERROR] unknown host", line)
 				continue
 			} else {
-				packwiz([]string{modHost, "install", line})
+				packwiz(*flagPackDir, []string{modHost, "install", line})
+			}
+		}
+	}
+}
+
+func batchMode(dir string, args []string) {
+	// get all folders in pack dir
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		fmt.Println("[ERROR]\n", err)
+		os.Exit(1)
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			// get filepath
+			filePath := filepath.Join(dir, file.Name())
+			filePath = strings.ReplaceAll(filePath, "\\", "/") + "/"
+			packwiz(filePath, args)
+			if *flagRefresh {
+				packwiz(filePath, []string{"refresh"})
 			}
 		}
 	}
