@@ -123,13 +123,13 @@ func importFromFile() {
 			metaDir := "mods"
 
 			if strings.Contains(line, "modrinth.com/mod/") {
-				installArgs = append(installArgs, "add", "mr")
+				installArgs = append(installArgs, "mr")
 			} else if strings.Contains(line, "curseforge.com/minecraft") {
-				installArgs = append(installArgs, "add", "cf")
+				installArgs = append(installArgs, "cf")
 			} else {
-				fmt.Println("[ERROR] unknown host", line)
-				continue
+				installArgs = append(installArgs, "url")
 			}
+			installArgs = append(installArgs, "add")
 			if strings.Contains(line, "curseforge.com/minecraft/texture-packs/") {
 				installArgs = append(installArgs, "--category", "texture-packs")
 				metaDir = "resourcepacks"
@@ -142,6 +142,7 @@ func importFromFile() {
 				installArgs = append(installArgs, "-y")
 			}
 
+			// Append the mod url
 			installArgs = append(installArgs, line)
 			packwiz(*flagPackDir, installArgs)
 
