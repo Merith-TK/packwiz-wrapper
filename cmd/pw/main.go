@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -147,7 +148,7 @@ func importFromFile() {
 			packwiz(*flagPackDir, installArgs)
 
 			if *flagSide {
-				m_file := filepath.Join(*flagPackDir, metaDir, fmt.Sprintf("%s.pw.toml", line))
+				m_file := filepath.Join(*flagPackDir, metaDir, fmt.Sprintf("%s.pw.toml", path.Base(line)))
 				f, err := ioutil.ReadFile(m_file)
 				if err != nil {
 					fmt.Println("Cannot read file: ", m_file)
