@@ -154,7 +154,7 @@ func importFromFile() {
 					fmt.Println("Cannot read file: ", m_file)
 					continue
 				} else {
-					ioutil.WriteFile(m_file, []byte(strings.Replace(string(f), "side: \"both\"", "side: \"client\"", -1)), fs.FileMode(os.O_WRONLY))
+					ioutil.WriteFile(m_file, []byte(strings.Replace(string(f), "side = \"both\"", "side = \"client\"", -1)), fs.FileMode(os.O_WRONLY))
 				}
 			}
 
