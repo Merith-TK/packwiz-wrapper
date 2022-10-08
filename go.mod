@@ -1,3 +1,3 @@
-module github.com/appkins/packwiz-wrapper
+module github.com/Merith-TK/packwiz-wrapper
 
 go 1.18
