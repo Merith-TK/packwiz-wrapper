@@ -3,9 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -35,7 +37,10 @@ var (
 	flagRefresh = flag.Bool("r", false, "refresh modpack after operations")
 
 	// import file
-	flagImport = flag.String("i", "", "import links from file")
+	flagImport  = flag.String("i", "", "import links from file")
+	flagMetaDir = flag.String("m", "", "meta directory (when using the import flag)")
+	flagConfirm = flag.Bool("y", false, "auto confirm (when using the import flag)")
+	flagSide    = flag.Bool("c", false, "client side mod (when using the import flag)")
 
 	args []string
 )
@@ -75,7 +80,7 @@ func main() {
 	}
 
 	if *flagBatch {
-		fmt.Println("[PackWrap] Batch mode\n")
+		fmt.Println("[PackWrap] Batch mode")
 		batchMode(*flagPackDir, args)
 	} else {
 		packwiz(*flagPackDir, args)
@@ -115,20 +120,44 @@ func importFromFile() {
 		if !strings.HasPrefix(line, "https://") {
 			continue
 		} else {
-			var modHost = ""
+			installArgs := []string{}
+			metaDir := "mods"
 
 			if strings.Contains(line, "modrinth.com/mod/") {
-				modHost = "mr"
-			}
-			if strings.Contains(line, "curseforge.com/minecraft/mc-mods/") {
-				modHost = "cf"
-			}
-			if modHost == "" {
-				fmt.Println("[ERROR] unknown host", line)
-				continue
+				installArgs = append(installArgs, "mr")
+			} else if strings.Contains(line, "curseforge.com/minecraft") {
+				installArgs = append(installArgs, "cf")
 			} else {
-				packwiz(*flagPackDir, []string{modHost, "install", line})
+				installArgs = append(installArgs, "url")
 			}
+			installArgs = append(installArgs, "add")
+			if strings.Contains(line, "curseforge.com/minecraft/texture-packs/") {
+				installArgs = append(installArgs, "--category", "texture-packs")
+				metaDir = "resourcepacks"
+			}
+			if *flagMetaDir != "" {
+				installArgs = append(installArgs, "--meta-dir", *flagMetaDir)
+				metaDir = *flagMetaDir
+			}
+			if *flagConfirm {
+				installArgs = append(installArgs, "-y")
+			}
+
+			// Append the mod url
+			installArgs = append(installArgs, line)
+			packwiz(*flagPackDir, installArgs)
+
+			if *flagSide {
+				m_file := filepath.Join(*flagPackDir, metaDir, fmt.Sprintf("%s.pw.toml", path.Base(line)))
+				f, err := ioutil.ReadFile(m_file)
+				if err != nil {
+					fmt.Println("Cannot read file: ", m_file)
+					continue
+				} else {
+					ioutil.WriteFile(m_file, []byte(strings.Replace(string(f), "side = \"both\"", "side = \"client\"", -1)), fs.FileMode(os.O_WRONLY))
+				}
+			}
+
 		}
 	}
 }
