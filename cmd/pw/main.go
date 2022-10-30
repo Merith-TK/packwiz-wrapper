@@ -117,6 +117,8 @@ func importFromFile() {
 
 	data := strings.Split(fileContent, "\n")
 	for _, line := range data {
+		line = strings.ReplaceAll(line, " ", "")
+		line = strings.ReplaceAll(line, "	", "")
 		if !strings.HasPrefix(line, "https://") {
 			continue
 		} else {
