@@ -80,6 +80,7 @@ func generateModList(modList []string, outputFile string) {
 
 	// write the header
 	_, err = file.WriteString("# Mod List\n")
+	_, err = file.WriteString("\n")
 	if err != nil {
 		log.Fatal(err)
 	}
