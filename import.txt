@@ -13,4 +13,4 @@ https://modrinth.com/mod/fabric-api
 it doesnt do anything else at the moment as
 I havent implemented making custom mod.pw.toml
 files yet!
-https://sketchysite.com/mods/iris
+#https://sketchysite.com/mods/iris
