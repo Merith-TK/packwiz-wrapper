@@ -17,6 +17,7 @@ var (
 	flagVersion   = flag.Bool("v", false, "show version")
 	flagPackDir   = flag.String("d", ".", "pack directory")
 	flatOuputFile = flag.String("o", "modlist.md", "output file")
+	flagRaw       = flag.Bool("r", false, "raw output")
 )
 
 func main() {
