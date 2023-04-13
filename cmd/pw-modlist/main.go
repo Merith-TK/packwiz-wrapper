@@ -50,7 +50,16 @@ func main() {
 		modName := strings.TrimSuffix(mod.Name(), ".pw.toml")
 
 		lines := strings.Split(string(contents), "\n")
+
 		for _, line := range lines {
+			if *flagRaw {
+				if strings.HasPrefix(line, "[update.modrinth]") {
+					modList = append(modList, "https://modrinth.com/mod/"+modName)
+				}
+				if strings.HasPrefix(line, "[update.curseforge]") {
+					modList = append(modList, "https://www.curseforge.com/minecraft/mc-mods/"+modName)
+				}
+			} else {
 			if strings.HasPrefix(line, "[update.modrinth]") {
 				modList = append(modList, "["+modName+"](https://modrinth.com/mod/"+modName+")")
 			}
