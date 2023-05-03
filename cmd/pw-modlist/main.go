@@ -61,13 +61,14 @@ func main() {
 					modList = append(modList, "https://www.curseforge.com/minecraft/mc-mods/"+modName)
 				}
 			} else {
-			if strings.HasPrefix(line, "[update.modrinth]") {
-				modList = append(modList, "["+modName+"](https://modrinth.com/mod/"+modName+")")
-			}
-			if strings.HasPrefix(line, "[update.curseforge]") {
-				modList = append(modList, "["+modName+"](https://www.curseforge.com/minecraft/mc-mods/"+modName+")")
-			}
+				if strings.HasPrefix(line, "[update.modrinth]") {
+					modList = append(modList, "["+modName+"](https://modrinth.com/mod/"+modName+")")
+				}
+				if strings.HasPrefix(line, "[update.curseforge]") {
+					modList = append(modList, "["+modName+"](https://www.curseforge.com/minecraft/mc-mods/"+modName+")")
+				}
 
+			}
 		}
 	}
 	generateModList(modList, *flatOuputFile)
