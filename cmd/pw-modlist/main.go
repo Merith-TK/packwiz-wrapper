@@ -2,11 +2,13 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
+
+	toml "github.com/pelletier/go-toml"
 )
 
 var (
@@ -41,67 +43,104 @@ func main() {
 		return
 	}
 
-	// list files in flagPackDir/mods
-	mods, _ := ioutil.ReadDir(*flagPackDir + "/mods")
-	var modList []string
-	for _, mod := range mods {
-		// read the file contents
-		contents, _ := ioutil.ReadFile(*flagPackDir + "/mods/" + mod.Name())
-		// trim .pw.toml from the filename
-		modName := strings.TrimSuffix(mod.Name(), ".pw.toml")
+	// delte output file if it exists
+	os.Remove(*flatOuputFile)
+	// open output file
+	f, err := os.OpenFile(*flatOuputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		lines := strings.Split(string(contents), "\n")
-
-		for _, line := range lines {
-			if *flagRaw {
-				if strings.HasPrefix(line, "[update.modrinth]") {
-					modList = append(modList, "https://modrinth.com/mod/"+modName)
-				}
-				if strings.HasPrefix(line, "[update.curseforge]") {
-					modList = append(modList, "https://www.curseforge.com/minecraft/mc-mods/"+modName)
-				}
-			} else {
-				if strings.HasPrefix(line, "[update.modrinth]") {
-					modList = append(modList, "["+modName+"](https://modrinth.com/mod/"+modName+")")
-				}
-				if strings.HasPrefix(line, "[update.curseforge]") {
-					modList = append(modList, "["+modName+"](https://www.curseforge.com/minecraft/mc-mods/"+modName+")")
-				}
-
-			}
+	// write header to output file
+	if !*flagRaw {
+		_, err = f.WriteString("# Modlist\n\n")
+		if err != nil {
+			log.Fatal(err)
 		}
 	}
-	generateModList(modList, *flatOuputFile)
+
+	// find all files in pack directory using filepath.Walk
+	err = filepath.Walk(*flagPackDir, func(path string, info os.FileInfo, err error) error {
+		// check if file is a .pw.toml file
+		if strings.HasSuffix(path, ".pw.toml") {
+			// read file
+			file, err := os.Open(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer file.Close()
+			// decode file
+			var mod PackwizToml
+			err = toml.NewDecoder(file).Decode(&mod)
+			if err != nil {
+				log.Fatal(err)
+			}
+			// set mod.Parse.ModID to the last part of the path without the .pw.toml extension
+			mod.Parse.ModID = strings.TrimSuffix(filepath.Base(path), ".pw.toml")
+			// append mod to modlist
+			modlist = append(modlist, mod)
+		}
+		return nil
+	})
+
+	// sort modlist by side
+	var clientMods []PackwizToml
+	var serverMods []PackwizToml
+	var sharedMods []PackwizToml
+	for _, mod := range modlist {
+		switch mod.Side {
+		case "client":
+			clientMods = append(clientMods, mod)
+		case "server":
+			serverMods = append(serverMods, mod)
+		case "both":
+			sharedMods = append(sharedMods, mod)
+		}
+	}
+
+	// write client mods to output file
+	var clientHeader = "## Client Mods\n\n"
+	var sharedHeader = "## Shared Mods\n\n"
+	var serverHeader = "## Server Mods\n\n"
+	writeSection(clientHeader, clientMods, f)
+	writeSection(sharedHeader, sharedMods, f)
+	writeSection(serverHeader, serverMods, f)
+
 }
 
-func generateModList(modList []string, outputFile string) {
-	// if the file exists, delete it
-	if _, err := os.Stat(outputFile); err == nil {
-		err = os.Remove(outputFile)
+func writeSection(header string, mods []PackwizToml, f *os.File) {
+	if len(mods) > 0 {
+		_, err := f.WriteString(header)
 		if err != nil {
 			log.Fatal(err)
 		}
-	}
-	// create the file
-	file, err := os.Create(outputFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	// write the header
-	_, err = file.WriteString("# Mod List\n")
-	_, err = file.WriteString("\n")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// write the mod list
-	for _, mod := range modList {
-		_, err = file.WriteString(fmt.Sprintf("- %s\n", mod))
-		if err != nil {
-			log.Fatal(err)
+		for _, mod := range mods {
+			writeMod(mod, f)
 		}
+	}
+	// write newline
+	_, err := f.WriteString("\n")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
+func writeMod(mod PackwizToml, f *os.File) {
+	var modURL string
+	if mod.Update.Modrinth.ModID != "" {
+		modURL = "https://modrinth.com/mod/" + mod.Update.Modrinth.ModID + "/version/" + mod.Update.Modrinth.Version
+	} else if mod.Update.Curseforge.ProjectID != 0 {
+		modURL = "https://www.curseforge.com/minecraft/mc-mods/" + mod.Parse.ModID + "/files/" + strconv.Itoa(mod.Update.Curseforge.FileID)
+	} else {
+		modURL = mod.Download.URL
+	}
+	var err error
+	if *flagRaw {
+		_, err = f.WriteString(mod.Name + "\n" + modURL + "\n\n")
+	} else {
+		_, err = f.WriteString("- [" + mod.Name + "](" + modURL + ")\n")
+	}
+	if err != nil {
+		log.Fatal(err)
 	}
 }
