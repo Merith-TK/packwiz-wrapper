@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	Version = "0.3.0"
+	Version = "0.3.1"
 
 	// flags
 	flagHelp = flag.Bool("h", false, "show help")
@@ -67,6 +67,8 @@ func main() {
 		reinstall()
 	case "batch":
 		batchMode(*flagPackDir, args[1:])
+	case "detect":
+		detectPackURL()
 	default:
 		packwiz(*flagPackDir, args)
 	}
