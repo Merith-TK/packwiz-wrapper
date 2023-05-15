@@ -13,7 +13,6 @@ func detectPackURL() {
 	// detect pack url based off of pack.toml location and git remote
 	// find pack.toml in current directory or child directories
 	packLocation := ""
-	fmt.Println(*flagPackDir)
 	err := filepath.Walk(*flagPackDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 
@@ -21,7 +20,9 @@ func detectPackURL() {
 			return nil
 		}
 		if strings.HasSuffix(path, "pack.toml") {
-			path = strings.Replace(path, *flagPackDir, "", 1)
+			if *flagPackDir != "." {
+				path = strings.Replace(path, *flagPackDir, "", 1)
+			}
 			packLocation = path
 			return nil
 		}
