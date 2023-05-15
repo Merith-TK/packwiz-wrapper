@@ -1,7 +1,5 @@
 package main
 
-var modlist []PackwizToml
-
 type PackwizToml struct {
 	Name     string `toml:"name"`
 	Filename string `toml:"filename"`

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -12,47 +12,37 @@ import (
 )
 
 var (
-	Version = "0.0.1"
-
-	// flags
-	flagHelp      = flag.Bool("h", false, "show help")
-	flagVersion   = flag.Bool("v", false, "show version")
-	flagPackDir   = flag.String("d", ".", "pack directory")
-	flatOuputFile = flag.String("o", "modlist.md", "output file")
-	flagRaw       = flag.Bool("r", false, "raw output")
+	modlistRaw         = false
+	modlistShowVersion = false
 )
 
-func main() {
-	flag.Parse()
-	//args := flag.Args()
+func modlist() {
+	var modlist []PackwizToml
 
-	if *flagVersion {
-		println(Version)
-		return
-	}
-	if *flagHelp {
-		flag.Usage()
-		return
-	}
-	if *flatOuputFile == "" {
-		println("output file is required")
-		return
-	}
-	if *flagPackDir == "" {
-		println("pack directory is required")
-		return
-	}
+	outputFile := filepath.Join(*flagPackDir, "modlist.md")
 
-	// delte output file if it exists
-	os.Remove(*flatOuputFile)
-	// open output file
-	f, err := os.OpenFile(*flatOuputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// if args contain raw or versions, set modlistRaw or modlistShowVersion to true
+	for _, arg := range args {
+		switch arg {
+		case "raw":
+			modlistRaw = true
+		case "versions":
+			modlistShowVersion = true
+		case "help":
+			fmt.Println("Usage: pw modlist <args>")
+			fmt.Println("Args:")
+			fmt.Println("  raw      - output raw modlist")
+			fmt.Println("  versions - show mod versions")
+		}
+	}
+	os.Remove(outputFile)
+	f, err := os.OpenFile(outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// write header to output file
-	if !*flagRaw {
+	if !modlistRaw {
 		_, err = f.WriteString("# Modlist\n\n")
 		if err != nil {
 			log.Fatal(err)
@@ -128,14 +118,20 @@ func writeSection(header string, mods []PackwizToml, f *os.File) {
 func writeMod(mod PackwizToml, f *os.File) {
 	var modURL string
 	if mod.Update.Modrinth.ModID != "" {
-		modURL = "https://modrinth.com/mod/" + mod.Update.Modrinth.ModID + "/version/" + mod.Update.Modrinth.Version
+		modURL = "https://modrinth.com/mod/" + mod.Update.Modrinth.ModID
+		if modlistShowVersion {
+			modURL += "/versions/" + mod.Update.Modrinth.Version
+		}
 	} else if mod.Update.Curseforge.ProjectID != 0 {
-		modURL = "https://www.curseforge.com/minecraft/mc-mods/" + mod.Parse.ModID + "/files/" + strconv.Itoa(mod.Update.Curseforge.FileID)
+		modURL = "https://www.curseforge.com/minecraft/mc-mods/" + mod.Parse.ModID
+		if modlistShowVersion {
+			modURL += "/files/" + strconv.Itoa(mod.Update.Curseforge.FileID)
+		}
 	} else {
 		modURL = mod.Download.URL
 	}
 	var err error
-	if *flagRaw {
+	if modlistRaw {
 		_, err = f.WriteString(mod.Name + "\n" + modURL + "\n\n")
 	} else {
 		_, err = f.WriteString("- [" + mod.Name + "](" + modURL + ")\n")
