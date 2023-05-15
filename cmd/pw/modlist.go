@@ -17,7 +17,7 @@ var (
 )
 
 func modlist() {
-	var modlist []PackwizToml
+	var modlist []PackToml
 
 	outputFile := filepath.Join(*flagPackDir, "modlist.md")
 
@@ -60,7 +60,7 @@ func modlist() {
 			}
 			defer file.Close()
 			// decode file
-			var mod PackwizToml
+			var mod PackToml
 			err = toml.NewDecoder(file).Decode(&mod)
 			if err != nil {
 				log.Fatal(err)
@@ -74,9 +74,9 @@ func modlist() {
 	})
 
 	// sort modlist by side
-	var clientMods []PackwizToml
-	var serverMods []PackwizToml
-	var sharedMods []PackwizToml
+	var clientMods []PackToml
+	var serverMods []PackToml
+	var sharedMods []PackToml
 	for _, mod := range modlist {
 		switch mod.Side {
 		case "client":
@@ -98,7 +98,7 @@ func modlist() {
 
 }
 
-func writeSection(header string, mods []PackwizToml, f *os.File) {
+func writeSection(header string, mods []PackToml, f *os.File) {
 	if len(mods) > 0 {
 		_, err := f.WriteString(header)
 		if err != nil {
@@ -115,7 +115,7 @@ func writeSection(header string, mods []PackwizToml, f *os.File) {
 	}
 }
 
-func writeMod(mod PackwizToml, f *os.File) {
+func writeMod(mod PackToml, f *os.File) {
 	var modURL string
 	if mod.Update.Modrinth.ModID != "" {
 		modURL = "https://modrinth.com/mod/" + mod.Update.Modrinth.ModID

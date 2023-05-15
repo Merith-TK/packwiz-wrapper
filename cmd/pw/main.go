@@ -46,6 +46,14 @@ func main() {
 	// pw reinstall -y (optional)
 	// pw batch <command>
 
+	// if there are no arguments, show help
+	if len(args) == 0 {
+		flag.Usage()
+		println()
+		packwiz(*flagPackDir, []string{})
+		return
+	}
+
 	switch args[0] {
 	case "version":
 		fmt.Println("PackWrap version", Version)
@@ -55,25 +63,14 @@ func main() {
 		importFromFile(args[1])
 	case "modlist":
 		modlist()
+	case "reinstall":
+		reinstall()
+	case "batch":
+		batchMode(*flagPackDir, args[1:])
 	default:
 		packwiz(*flagPackDir, args)
 	}
 
-}
-
-func packwiz(dir string, args []string) {
-	fmt.Println("[PackWrap] Handoff: ["+dir+"] packwiz", strings.Join(args, " "))
-	cmd := exec.Command("packwiz", args...)
-	cmd.Dir = filepath.Dir(dir)
-	if _, err := os.Stat(cmd.Dir); err != nil {
-		fmt.Println("[PackWrap] [ERROR] packwiz directory not found, creating...")
-		os.Mkdir(cmd.Dir, 0755)
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	cmd.Run()
-	fmt.Print("\n")
 }
 
 func batchMode(dir string, args []string) {
