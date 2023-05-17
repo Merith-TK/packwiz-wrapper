@@ -56,7 +56,6 @@ if you pass `raw` as an argument, it will generate without markdown formatting o
 Sodium
 https://modrinth.com/mod/AANobbMI
 
-
 ## Shared Mods
 
 Lithium (Fabric)
@@ -80,22 +79,31 @@ if you pass `versions` as an argument, it will generate with versions specified 
 Do note that this does not support URL files, and will not generate versions for those.
 
 ## reinstall
+
 - `pw reinstall` will reinstall all meta-files, including URLs
   - It will load all meta-files into internal memory, and then reinstall them with packwiz.
 
 ## batch
+
 - `pw batch` will run packwiz commands in all subfolders of a folder
   - run from the folder containing the folders with pack.toml's
   - `pw batch refresh` will refresh all subpacks
 
 ## flags
+
 - `pw` supports a few flags, which can be used with any subcommand
   - `pw -h` will print help
   - `pw -r` will run `packwiz refresh` after operations
-	- running `pw -r import` will automatically refresh after its done importing
+  - running `pw -r import` will automatically refresh after its done importing
   - `pw -y` will autoconfirm (not full implemented into all subcommands)
   - `pw -c` is depreciated
-	- Originally used for importing only clientside mods, but does nothing now
+  - Originally used for importing only clientside mods, but does nothing now
   - `pw -d <PackDir>` will set the pack directory to `<PackDir>`
-	- In batchmode this points to where folders containg pack.toml's are rather than the current folder
+  - In batchmode this points to where folders containg pack.toml's are rather than the current folder
 
+# how to install
+
+Make sure you have golang installed (https://golang.org/doc/install),
+and then run
+
+- `go install github.com/Merith-TK/packwiz-wrapper@main`
