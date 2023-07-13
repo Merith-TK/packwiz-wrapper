@@ -106,4 +106,4 @@ Do note that this does not support URL files, and will not generate versions for
 Make sure you have golang installed (https://golang.org/doc/install),
 and then run
 
-- `go install github.com/Merith-TK/packwiz-wrapper@main`
+- `go install github.com/Merith-TK/packwiz-wrapper/cmd/pw@main`
