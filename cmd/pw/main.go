@@ -86,10 +86,18 @@ func batchMode(dir string, args []string) {
 	}
 	for _, file := range files {
 		if file.IsDir() {
-			// get filepath
 			filePath := filepath.Join(dir, file.Name())
 			filePath = strings.ReplaceAll(filePath, "\\", "/") + "/"
-			packwiz(filePath, args)
+			selfExec, err := os.Executable()
+			if err != nil {
+				fmt.Println("[ERROR]\n", err)
+				os.Exit(1)
+			}
+
+			selfExec = filepath.Base(selfExec)
+			newArgs := append([]string{selfExec}, args...)
+
+			executeArb(filePath, newArgs)
 			if *flagRefresh {
 				packwiz(filePath, []string{"refresh"})
 			}

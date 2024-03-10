@@ -50,7 +50,7 @@ func modlist() {
 	}
 
 	// find all files in pack directory using filepath.Walk
-	err = filepath.Walk(*flagPackDir, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(*flagPackDir, func(path string, info os.FileInfo, _ error) error {
 		// check if file is a .pw.toml file
 		if strings.HasSuffix(path, ".pw.toml") {
 			// read file
