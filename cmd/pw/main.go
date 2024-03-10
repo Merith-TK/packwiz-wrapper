@@ -69,6 +69,8 @@ func main() {
 		batchMode(*flagPackDir, args[1:])
 	case "detect":
 		detectPackURL()
+	case "arb":
+		executeArb(*flagPackDir, args[1:])
 	default:
 		packwiz(*flagPackDir, args)
 	}

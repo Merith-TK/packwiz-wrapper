@@ -44,11 +44,43 @@ type PackToml struct {
 
 // run packwiz with args
 func packwiz(dir string, args []string) {
+
+	// all this, just to find the pack.toml
+	_, err := os.Stat(filepath.Join(dir, "pack.toml"))
+	if err != nil {
+		_, err = os.Stat(filepath.Join(dir, ".minecraft", "pack.toml"))
+		if err != nil {
+			fmt.Println("[PackWrap] [ERROR] pack.toml not found")
+			return
+		}
+		fmt.Println("[PackWrap] Using pack.toml from .minecraft")
+		dir = filepath.Join(dir, ".minecraft")
+		dir = filepath.ToSlash(dir)
+		if !strings.HasSuffix(dir, "/") {
+			dir = dir + "/"
+		}
+	}
+
 	fmt.Println("[PackWrap] Handoff: ["+dir+"] packwiz", strings.Join(args, " "))
 	cmd := exec.Command("packwiz", args...)
 	cmd.Dir = filepath.Dir(dir)
 	if _, err := os.Stat(cmd.Dir); err != nil {
 		fmt.Println("[PackWrap] [ERROR] packwiz directory not found, creating...")
+		os.Mkdir(cmd.Dir, 0755)
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Run()
+	fmt.Print("\n")
+}
+
+func executeArb(dir string, args []string) {
+	fmt.Println("[PackWrap] Arbitrary: ["+dir+"]", strings.Join(args, " "))
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Dir = filepath.Dir(dir)
+	if _, err := os.Stat(cmd.Dir); err != nil {
+		fmt.Println("[PackWrap] [ERROR] arbitrary directory not found, creating...")
 		os.Mkdir(cmd.Dir, 0755)
 	}
 	cmd.Stdout = os.Stdout

@@ -71,9 +71,8 @@ func detectPackURL() {
 	case "gitlab.com":
 		urlString = remoteString + "/-/raw/" + branchString + "/" + packLocation
 	default:
-		fmt.Println("Unsupported git host")
-		fmt.Println(part)
-		return
+		fmt.Println("Unknown Git Remote Host:" + part + "\nAssuming Gitea.")
+		urlString = remoteString + "/raw/branch/" + branchString + "/" + packLocation
 	}
 	fmt.Println(urlString)
 }
