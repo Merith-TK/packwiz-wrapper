@@ -14,11 +14,10 @@
   - You can use `versions` to generate with versions specified in modlist
 - `pw reinstall`
   - reinstalls all meta-files, including URLs
-- `pw batch (packwiz args)`
-  - same as old pw -b, runs packwiz command in all subfolders of a folder
-  - run from the folder containing the folders with pack.toml's
-  - `pw batch refresh` will refresh all subpacks
-
+- `pw batch (arguments)`
+  - runs arguments in each subfolder of the current folder (changeable by using `-d <path>` before `batch`)
+- `pw arb <arguments>`
+  - runs arbitrary commands, useful for batchmode otherwise not really
 ## import
 
 `pw import` now supports importing from a file, `import.txt` by default.
@@ -88,6 +87,24 @@ Do note that this does not support URL files, and will not generate versions for
 - `pw batch` will run packwiz commands in all subfolders of a folder
   - run from the folder containing the folders with pack.toml's
   - `pw batch refresh` will refresh all subpacks
+    ```
+    pack1/
+    pack2/
+    ```
+  - note, batchmode supports "recursion" such as `pw batch batch refresh` will run refresh in each sub/subfolder, 
+    ```
+    pack1/
+      subpack1/
+      subpack2/
+    pack2/
+      subpack1/
+      subpack2/
+    ```
+
+## arb
+- Runs arbitrary command from arguments
+  - `pw arb mkdir .minecraft` will run `mkdir .minecraft`
+  - really only useful if you are using batchmode as you can run a single arbitrary command in every pack folder
 
 ## flags
 
