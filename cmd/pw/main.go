@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	Version = "0.3.1"
+	Version = "0.3.4"
 
 	// flags
 	flagHelp = flag.Bool("h", false, "show help")
