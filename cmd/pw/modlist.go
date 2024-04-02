@@ -120,7 +120,7 @@ func writeMod(mod PackToml, f *os.File) {
 	if mod.Update.Modrinth.ModID != "" {
 		modURL = "https://modrinth.com/mod/" + mod.Update.Modrinth.ModID
 		if modlistShowVersion {
-			modURL += "/versions/" + mod.Update.Modrinth.Version
+			modURL += "/version/" + mod.Update.Modrinth.Version
 		}
 	} else if mod.Update.Curseforge.ProjectID != 0 {
 		modURL = "https://www.curseforge.com/minecraft/mc-mods/" + mod.Parse.ModID

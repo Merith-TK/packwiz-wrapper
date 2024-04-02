@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func detectPackURL() {
+func detectPackURL(localpath bool) {
 	// detect pack url based off of pack.toml location and git remote
 	// find pack.toml in current directory or child directories
 	packLocation := ""
@@ -41,7 +41,12 @@ func detectPackURL() {
 		// convert \ to /
 		packLocation = strings.ReplaceAll(packLocation, "\\", "/")
 	}
-
+	if localpath {
+		packLocation, _ = filepath.Abs(*flagPackDir + packLocation)
+		packLocation = filepath.ToSlash(packLocation)
+		fmt.Println(packLocation)
+		return
+	}
 	// get git remote
 	remote, err := exec.Command("git", "remote", "get-url", "origin").Output()
 	if err != nil {
@@ -71,7 +76,7 @@ func detectPackURL() {
 	case "gitlab.com":
 		urlString = remoteString + "/-/raw/" + branchString + "/" + packLocation
 	default:
-		fmt.Println("Unknown Git Remote Host:" + part + "\nAssuming Gitea.")
+		// fmt.Println("Unknown Git Remote Host:" + part + "\nAssuming Gitea.")
 		urlString = remoteString + "/raw/branch/" + branchString + "/" + packLocation
 	}
 	fmt.Println(urlString)
