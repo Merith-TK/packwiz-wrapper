@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,7 +17,7 @@ type IndexToml struct {
 		Metafile bool   `toml:"metafile,omitempty"`
 	} `toml:"files"`
 }
-type PackToml struct {
+type ModToml struct {
 	Name     string `toml:"name"`
 	Filename string `toml:"filename"`
 	Side     string `toml:"side"`
@@ -44,23 +45,7 @@ type PackToml struct {
 
 // run packwiz with args
 func packwiz(dir string, args []string) {
-
-	// all this, just to find the pack.toml
-	_, err := os.Stat(filepath.Join(dir, "pack.toml"))
-	if err != nil {
-		_, err = os.Stat(filepath.Join(dir, ".minecraft", "pack.toml"))
-		if err != nil {
-			fmt.Println("[PackWrap] [ERROR] pack.toml not found")
-			return
-		}
-		fmt.Println("[PackWrap] Using pack.toml from .minecraft")
-		dir = filepath.Join(dir, ".minecraft")
-		dir = filepath.ToSlash(dir)
-		if !strings.HasSuffix(dir, "/") {
-			dir = dir + "/"
-		}
-	}
-
+	dir = findPackToml(dir)
 	fmt.Println("[PackWrap] Handoff: ["+dir+"] packwiz", strings.Join(args, " "))
 	cmd := exec.Command("packwiz", args...)
 	cmd.Dir = filepath.Dir(dir)
@@ -88,4 +73,29 @@ func executeArb(dir string, args []string) {
 	cmd.Stdin = os.Stdin
 	cmd.Run()
 	fmt.Print("\n")
+}
+
+func findPackToml(dir string) string {
+	// all this, just to find the pack.toml
+	_, err := os.Stat(filepath.Join(dir, "pack.toml"))
+	if err != nil {
+		_, err = os.Stat(filepath.Join(dir, ".minecraft", "pack.toml"))
+		if err != nil {
+			fmt.Println("[PackWrap] [ERROR] pack.toml not found")
+			return ""
+		}
+		fmt.Println("[PackWrap] Using pack.toml from .minecraft")
+		dir = filepath.Join(dir, ".minecraft")
+		dir = filepath.ToSlash(dir)
+		if !strings.HasSuffix(dir, "/") {
+			dir = dir + "/"
+		}
+		return dir
+	}
+	dir = filepath.ToSlash(dir)
+	if !strings.HasSuffix(dir, "/") {
+		dir = dir + "/"
+	}
+	log.Println("[PackWrap] Found Pack Directory:", dir)
+	return dir
 }

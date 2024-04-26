@@ -13,7 +13,7 @@ import (
 func reinstall() {
 	packwiz(*flagPackDir, []string{"refresh"})
 	var index IndexToml
-	var modlist []PackToml
+	var modlist []ModToml
 
 	withVersions := false
 	// read all arguemnts
@@ -41,8 +41,8 @@ func reinstall() {
 		if !file.Metafile {
 			continue
 		}
-		// read file.File to PackToml
-		var packtoml PackToml
+		// read file.File to ModToml
+		var packtoml ModToml
 		packtomlFile := filepath.Join(*flagPackDir, file.File)
 		packtomlFileHandler, err := os.Open(packtomlFile)
 		if err != nil {

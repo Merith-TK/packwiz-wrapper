@@ -17,8 +17,22 @@ var (
 )
 
 func modlist() {
-	var modlist []PackToml
+	var modlist []ModToml
+	var index IndexToml
+	// read index.toml
+	localDir := findPackToml(*flagPackDir)
+	indexFile := filepath.Join(localDir, "index.toml")
 
+	// open index.toml
+	indexFileHandler, err := os.Open(indexFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = toml.NewDecoder(indexFileHandler).Decode(&index)
+	if err != nil {
+		log.Fatal(err)
+	}
+	indexFileHandler.Close()
 	outputFile := filepath.Join(*flagPackDir, "modlist.md")
 
 	// if args contain raw or versions, set modlistRaw or modlistShowVersion to true
@@ -50,33 +64,33 @@ func modlist() {
 	}
 
 	// find all files in pack directory using filepath.Walk
-	filepath.Walk(*flagPackDir, func(path string, info os.FileInfo, _ error) error {
-		// check if file is a .pw.toml file
-		if strings.HasSuffix(path, ".pw.toml") {
-			// read file
-			file, err := os.Open(path)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer file.Close()
-			// decode file
-			var mod PackToml
-			err = toml.NewDecoder(file).Decode(&mod)
-			if err != nil {
-				log.Fatal(err)
-			}
-			// set mod.Parse.ModID to the last part of the path without the .pw.toml extension
-			mod.Parse.ModID = strings.TrimSuffix(filepath.Base(path), ".pw.toml")
-			// append mod to modlist
-			modlist = append(modlist, mod)
+	for _, file := range index.Files {
+		if !file.Metafile {
+			continue
 		}
-		return nil
-	})
+		modFilePath := filepath.Join(localDir, file.File)
+		// read file
+		modFile, err := os.Open(modFilePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer modFile.Close()
+		// decode file
+		var mod ModToml
+		err = toml.NewDecoder(modFile).Decode(&mod)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// set mod.Parse.ModID to the last part of the path without the .pw.toml extension
+		mod.Parse.ModID = strings.TrimSuffix(filepath.Base(modFilePath), ".pw.toml")
+		// append mod to modlist
+		modlist = append(modlist, mod)
+	}
 
 	// sort modlist by side
-	var clientMods []PackToml
-	var serverMods []PackToml
-	var sharedMods []PackToml
+	var clientMods []ModToml
+	var serverMods []ModToml
+	var sharedMods []ModToml
 	for _, mod := range modlist {
 		switch mod.Side {
 		case "client":
@@ -98,7 +112,7 @@ func modlist() {
 
 }
 
-func writeSection(header string, mods []PackToml, f *os.File) {
+func writeSection(header string, mods []ModToml, f *os.File) {
 	if len(mods) > 0 {
 		_, err := f.WriteString(header)
 		if err != nil {
@@ -115,7 +129,7 @@ func writeSection(header string, mods []PackToml, f *os.File) {
 	}
 }
 
-func writeMod(mod PackToml, f *os.File) {
+func writeMod(mod ModToml, f *os.File) {
 	var modURL string
 	if mod.Update.Modrinth.ModID != "" {
 		modURL = "https://modrinth.com/mod/" + mod.Update.Modrinth.ModID
