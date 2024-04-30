@@ -35,7 +35,7 @@ type ModToml struct {
 			FileID    int `toml:"file-id"`
 			ProjectID int `toml:"project-id"`
 		} `toml:"curseforge"`
-	} `toml:"update"`
+	} `toml:"update,omitempty"`
 	// Parse is specific to this program
 	Parse struct {
 		ModID string `toml:"mod-id"`

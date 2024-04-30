@@ -60,7 +60,7 @@ func main() {
 	case "help":
 		flag.Usage()
 	case "import":
-		importFromFile(args[1])
+		importcmd(args[1:])
 	case "modlist":
 		modlist()
 	case "reinstall":

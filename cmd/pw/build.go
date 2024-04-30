@@ -44,19 +44,17 @@ func moveBuildFiles(extension string, packdir string) {
 		if filepath.Ext(path) == "."+extension {
 			// Move the file to the .build directory with the appended timestamp -Month-Day_Hour-Minute-Second
 			timestamp := info.ModTime().Format("_01-02_15-04-05")
-			newname := strings.Split(filepath.Base(path), ".")
-			newname = append(newname[:len(newname)-1], timestamp)
-			newnameStr := strings.Join(newname, ".")
-			// ensure the new file name does not exist and has the correct extension
-			if _, err := os.Stat(filepath.Join(".build", newnameStr)); err == nil {
+			filename := fmt.Sprintf("%s%s.%s", strings.TrimSuffix(filepath.Base(path), filepath.Ext(path)), timestamp, extension)
+			newFilePath := filepath.Join(".build", filepath.Base(filename))
+			if _, err := os.Stat(newFilePath); err == nil {
 				fmt.Println("[PackWrap] [ERROR] file already exists in .build directory")
 				return err
 			}
-			if !strings.HasSuffix(newnameStr, "."+extension) {
-				newnameStr = newnameStr + "." + extension
+			if !strings.HasSuffix(filename, "."+extension) {
+				filename += "." + extension
 			}
 
-			err := os.Rename(path, filepath.Join(".build", filepath.Base(newnameStr)))
+			err := os.Rename(path, filepath.Join(".build", filepath.Base(filename)))
 			if err != nil {
 				fmt.Println("[PackWrap] [ERROR] failed to move file to .build directory")
 				fmt.Println(err)
