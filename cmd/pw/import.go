@@ -2,13 +2,24 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 )
 
 func importFromFile(importFile string) {
-	var file, err = ioutil.ReadFile(importFile)
+	log.Println("IMPORTING", importFile)
+	// check if file exists, if not, check if ./import.txt exists and notify user, if not, exit with error
+	if _, err := os.Stat(importFile); os.IsNotExist(err) {
+		if _, err := os.Stat("./import.txt"); os.IsNotExist(err) {
+			fmt.Println("[ERROR]\n", "File not found")
+			os.Exit(1)
+		} else {
+			importFile = "./import.txt"
+		}
+	}
+	// open file and read contents
+	file, err := os.ReadFile(importFile)
 	if err != nil {
 		fmt.Println("[ERROR]\n", err)
 		os.Exit(1)

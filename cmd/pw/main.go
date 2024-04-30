@@ -73,6 +73,8 @@ func main() {
 		detectPackURL(true)
 	case "arb":
 		executeArb(*flagPackDir, args[1:])
+	case "build":
+		buildPack(*flagPackDir, args[1:])
 	default:
 		packwiz(*flagPackDir, args)
 	}
