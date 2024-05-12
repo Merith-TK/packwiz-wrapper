@@ -1,3 +1,10 @@
+# how to install
+
+Make sure you have golang installed (https://golang.org/doc/install),
+and then run
+
+- `go install github.com/Merith-TK/packwiz-wrapper/cmd/pw@main`
+
 # how to use
 
 - `pw version`
@@ -118,9 +125,3 @@ Do note that this does not support URL files, and will not generate versions for
   - `pw -d <PackDir>` will set the pack directory to `<PackDir>`
   - In batchmode this points to where folders containg pack.toml's are rather than the current folder
 
-# how to install
-
-Make sure you have golang installed (https://golang.org/doc/install),
-and then run
-
-- `go install github.com/Merith-TK/packwiz-wrapper/cmd/pw@main`

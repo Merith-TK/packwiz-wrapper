@@ -44,6 +44,7 @@ func detectPackURL(localpath bool) {
 	if localpath {
 		packLocation, _ = filepath.Abs(*flagPackDir + packLocation)
 		packLocation = filepath.ToSlash(packLocation)
+		packLocation = strings.Replace(packLocation, "/..minecraft", "/.minecraft", 1)
 		fmt.Println(packLocation)
 		return
 	}
