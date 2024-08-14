@@ -18,8 +18,8 @@ var (
 
 	flagRefresh = flag.Bool("r", false, "refresh modpack after operations")
 
-	flagConfirm = flag.Bool("y", false, "auto confirm (when using the import flag)")
-	flagSide    = flag.Bool("c", false, "client side mod (when using the import flag)")
+	// flagConfirm = flag.Bool("y", false, "auto confirm (when using the import flag)")
+	// flagSide    = flag.Bool("c", false, "client side mod (when using the import flag)")
 
 	flagPackDir = flag.String("d", ".", "pack directory")
 

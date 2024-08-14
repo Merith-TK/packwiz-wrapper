@@ -73,7 +73,7 @@ func detectPackURL(localpath bool) {
 	case "github.com":
 		// replace github.com with raw.githubusercontent.com
 		remoteString = strings.Replace(remoteString, "github.com", "raw.githubusercontent.com", 1)
-		urlString = remoteString + "/tree/" + branchString + "/" + packLocation
+		urlString = strings.Join([]string{remoteString, branchString, packLocation}, "/")
 	case "gitlab.com":
 		urlString = remoteString + "/-/raw/" + branchString + "/" + packLocation
 	default:
