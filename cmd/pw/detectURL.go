@@ -64,6 +64,13 @@ func detectPackURL(localpath bool) {
 	branchString := string(branch)
 	branchString = strings.TrimSuffix(branchString, "\n")
 
+	// if branch name is empty, try to get it from GITHUB_HEAD_REF
+	if branchString == "" {
+		if branchString = os.Getenv("GITHUB_HEAD_REF"); branchString == "" {
+			log.Fatal("Branch name could not be determined")
+		}
+	}
+
 	// split remote into parts
 	remoteParts := strings.Split(remoteString, "/")
 
