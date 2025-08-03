@@ -1,110 +1,101 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
-)
 
-var (
-	Version = "0.3.4"
-
-	// flags
-	flagHelp = flag.Bool("h", false, "show help")
-
-	flagRefresh = flag.Bool("r", false, "refresh modpack after operations")
-
-	// flagConfirm = flag.Bool("y", false, "auto confirm (when using the import flag)")
-	// flagSide    = flag.Bool("c", false, "client side mod (when using the import flag)")
-
-	flagPackDir = flag.String("d", ".", "pack directory")
-
-	args []string
+	"github.com/Merith-TK/packwiz-wrapper/cmd/pw/commands"
+	"github.com/Merith-TK/packwiz-wrapper/cmd/pw/internal/packwiz"
 )
 
 func main() {
-	flag.Parse()
-	args = flag.Args()
-
-	if _, err := exec.LookPath("packwiz"); err != nil {
-		fmt.Println("[PackWrap] \n[ERROR] packwiz is not installed,\nplease install it with 'go install github.com/packwiz/packwiz@latest'")
-		return
-	}
-
-	if *flagHelp {
-		flag.Usage()
-		return
-	}
-
-	// usage
-	// pw modlist -raw (optional)
-	// pw import -i import.txt -y (optional)
-	// pw reinstall -y (optional)
-	// pw batch <command>
-
-	// if there are no arguments, show help
-	if len(args) == 0 {
-		flag.Usage()
-		println()
-		packwiz(*flagPackDir, []string{})
-		return
-	}
-
-	switch args[0] {
-	case "version":
-		fmt.Println("PackWrap version", Version)
-	case "help":
-		flag.Usage()
-	case "import":
-		importcmd(args[1:])
-	case "modlist":
-		modlist()
-	case "reinstall":
-		reinstall()
-	case "batch":
-		batchMode(*flagPackDir, args[1:])
-	case "detect":
-		detectPackURL(false)
-	case "detectLocal":
-		detectPackURL(true)
-	case "arb":
-		executeArb(*flagPackDir, args[1:])
-	case "build":
-		buildPack(*flagPackDir, args[1:])
-	default:
-		packwiz(*flagPackDir, args)
-	}
-
-}
-
-func batchMode(dir string, args []string) {
-	// get all folders in pack dir
-	files, err := ioutil.ReadDir(dir)
+	// Get current directory as pack directory
+	packDir, err := os.Getwd()
 	if err != nil {
-		fmt.Println("[ERROR]\n", err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-	for _, file := range files {
-		if file.IsDir() {
-			filePath := filepath.Join(dir, file.Name())
-			filePath = strings.ReplaceAll(filePath, "\\", "/") + "/"
-			selfExec, err := os.Executable()
-			if err != nil {
-				fmt.Println("[ERROR]\n", err)
-				os.Exit(1)
-			}
 
-			selfExec = filepath.Base(selfExec)
-			newArgs := append([]string{selfExec}, args...)
+	// Create command registry with minimal setup
+	registry := commands.NewCommandRegistry()
 
-			executeArb(filePath, newArgs)
-			if *flagRefresh {
-				packwiz(filePath, []string{"refresh"})
-			}
+	// ULTRA-SIMPLE REGISTRATION: All function-based commands!
+	registry.RegisterAll(
+		// Core commands
+		commands.CmdVersion, // version, v, --version
+		commands.CmdHelp,    // help, h, --help
+
+		// Mod management
+		commands.CmdMod,       // mod, m (smart URL parsing)
+		commands.CmdModlist,   // modlist, list-mods, mods
+		commands.CmdReinstall, // reinstall, refresh-mods
+
+		// Build & export
+		commands.CmdBuild, // build, export (all formats)
+
+		// Pack management
+		commands.CmdImport,  // import, load
+		commands.CmdDetect,  // detect, detect-url, url
+		commands.CmdRelease, // release, changelog
+
+		// Batch operations
+		commands.CmdBatch,     // batch, multi
+		commands.CmdArbitrary, // arbitrary, exec, run
+
+		// Development
+		commands.CmdServer, // server, test-server, start
+
+		// Just add more function references here - no () needed!
+	)
+
+	// Parse command line arguments
+	args := os.Args[1:]
+	if len(args) == 0 {
+		showMainHelp(registry)
+		return
+	}
+
+	commandName := args[0]
+	commandArgs := args[1:]
+
+	// Try to find and execute command
+	if cmd, found := registry.Get(commandName); found {
+		if err := cmd.Execute(commandArgs); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	// PASSTHROUGH: Unknown commands go to packwiz
+	client := packwiz.NewClient(packDir)
+	if err := client.Execute(args); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+// showMainHelp displays the main help with all registered commands
+func showMainHelp(registry *commands.CommandRegistry) {
+	programName := filepath.Base(os.Args[0])
+
+	fmt.Printf("%s v%s - Enhanced packwiz wrapper\n\n", programName, commands.Version)
+	fmt.Println("Enhanced Commands:")
+
+	// Show all registered commands with their short help
+	for _, cmd := range registry.List() {
+		names := cmd.Names()
+		primary := names[0]
+
+		// Show aliases if any
+		if len(names) > 1 {
+			fmt.Printf("  %-15s %s (aliases: %v)\n", primary, cmd.ShortHelp(), names[1:])
+		} else {
+			fmt.Printf("  %-15s %s\n", primary, cmd.ShortHelp())
 		}
 	}
+
+	fmt.Println("\nAll other commands are passed through to packwiz.")
+	fmt.Printf("Use '%s <command> help' for detailed help on any command.\n", programName)
 }
