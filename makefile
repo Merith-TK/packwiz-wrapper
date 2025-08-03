@@ -1,10 +1,15 @@
 default: cli gui
 
-cli:
-	go build -o pw.exe ./cmd/pw
+cli: check-upx
+	@echo "Building CLI application..."
+	go build -ldflags="-s -w" -o pw.exe ./cmd/pw
+	upx --best --lzma pw.exe
 
-gui:
-	go build -o pw-gui.exe ./cmd/pw-gui
+gui: check-upx
+	@echo "Building GUI application..."
+	@echo "Warning: First time building GUI may take longer due to dependencies."
+	go build -ldflags="-s -w" -o pw-gui.exe ./cmd/pw-gui
+	upx --best --lzma pw-gui.exe
 
 clean:
 	del /Q pw.exe pw-gui.exe 2>nul || true
@@ -14,4 +19,15 @@ install:
 	-go install ./cmd/pw
 	-go install ./cmd/pw-gui
 
-.PHONY: default cli gui clean install
+# Build without compression (for development/debugging)
+cli-debug:
+	go build -o pw.exe ./cmd/pw
+
+gui-debug:
+	go build -o pw-gui.exe ./cmd/pw-gui
+
+# Check if UPX is available
+check-upx:
+	@upx --version >nul 2>&1 || (echo "UPX not found. Install from https://upx.github.io/" && exit 1)
+
+.PHONY: default cli gui clean install cli-debug gui-debug check-upx
