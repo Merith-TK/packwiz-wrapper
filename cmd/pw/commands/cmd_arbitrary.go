@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/Merith-TK/packwiz-wrapper/cmd/pw/internal/packwiz"
+	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
 
 // CmdArbitrary provides arbitrary command execution
@@ -29,7 +29,7 @@ run the same command across multiple pack directories.`,
 			if len(args) == 0 {
 				return fmt.Errorf("no command specified")
 			}
-			
+
 			return executeArbitraryCommand(args)
 		}
 }
@@ -37,7 +37,7 @@ run the same command across multiple pack directories.`,
 func executeArbitraryCommand(args []string) error {
 	packDir, _ := os.Getwd()
 	client := packwiz.NewClient(packDir)
-	
+
 	// Find pack directory to ensure we're in the right context
 	packLocation := client.GetPackDir()
 	if packLocation == "" {
@@ -46,19 +46,19 @@ func executeArbitraryCommand(args []string) error {
 	} else {
 		packLocation = filepath.Dir(packLocation)
 	}
-	
+
 	fmt.Printf("Executing arbitrary command in %s: %s\n", packLocation, args)
-	
+
 	// Create and execute command
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Dir = packLocation
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-	
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("arbitrary command failed: %w", err)
 	}
-	
+
 	return nil
 }

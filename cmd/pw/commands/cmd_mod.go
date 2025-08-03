@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Merith-TK/packwiz-wrapper/cmd/pw/internal/packwiz"
+	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
 
 // CmdMod provides enhanced mod management with smart URL parsing
@@ -31,7 +31,7 @@ Examples:
 		func(args []string) error {
 			packDir, _ := os.Getwd()
 			client := packwiz.NewClient(packDir)
-			
+
 			if len(args) == 0 {
 				// Pass through to packwiz for help
 				return client.Execute([]string{"mod"})
@@ -53,7 +53,7 @@ Examples:
 // Helper functions for smart mod management
 func addModSmart(client *packwiz.Client, identifier string) error {
 	source, slug, version := parseModIdentifier(identifier)
-	
+
 	switch source {
 	case "modrinth", "mr":
 		return addModrinthMod(client, slug, version)
@@ -90,10 +90,10 @@ func parseModIdentifier(identifier string) (source, slug, version string) {
 	if strings.HasPrefix(identifier, "http://") || strings.HasPrefix(identifier, "https://") {
 		return "url", identifier, ""
 	}
-	
+
 	// Parse source:slug:version format
 	parts := strings.Split(identifier, ":")
-	
+
 	switch len(parts) {
 	case 1:
 		// Just slug, auto-detect

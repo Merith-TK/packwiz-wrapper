@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Merith-TK/packwiz-wrapper/cmd/pw/internal/packwiz"
+	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
 
 // Command interface for all commands - minimal and simple

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/Merith-TK/packwiz-wrapper/cmd/pw/commands"
-	"github.com/Merith-TK/packwiz-wrapper/cmd/pw/internal/packwiz"
+	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
 
 func main() {
@@ -25,6 +25,7 @@ func main() {
 		// Core commands
 		commands.CmdVersion, // version, v, --version
 		commands.CmdHelp,    // help, h, --help
+		commands.CmdGUI,     // gui
 
 		// Mod management
 		commands.CmdMod,       // mod, m (smart URL parsing)

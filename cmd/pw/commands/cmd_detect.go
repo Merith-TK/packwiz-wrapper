@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Merith-TK/packwiz-wrapper/cmd/pw/internal/packwiz"
+	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
 
 // CmdDetect provides pack URL detection from git remotes
@@ -24,7 +24,7 @@ Examples:
   pw detect local         - Get local filesystem path`,
 		func(args []string) error {
 			localPath := false
-			
+
 			// Check for local flag
 			for _, arg := range args {
 				if arg == "local" || arg == "--local" {
@@ -32,7 +32,7 @@ Examples:
 					break
 				}
 			}
-			
+
 			return detectPackURL(localPath)
 		}
 }
@@ -40,13 +40,13 @@ Examples:
 func detectPackURL(localPath bool) error {
 	packDir, _ := os.Getwd()
 	client := packwiz.NewClient(packDir)
-	
+
 	// Find pack.toml location
 	packLocation := client.GetPackDir()
 	if packLocation == "" {
 		return fmt.Errorf("pack.toml not found")
 	}
-	
+
 	// Convert to relative path for URL construction
 	relPath := strings.TrimPrefix(packLocation, packDir)
 	relPath = strings.TrimPrefix(relPath, string(filepath.Separator))
@@ -55,7 +55,7 @@ func detectPackURL(localPath bool) error {
 		relPath = relPath + "/"
 	}
 	relPath = relPath + "pack.toml"
-	
+
 	if localPath {
 		// Return absolute local path
 		absPath, err := filepath.Abs(filepath.Join(packDir, relPath))
@@ -67,7 +67,7 @@ func detectPackURL(localPath bool) error {
 		fmt.Println(absPath)
 		return nil
 	}
-	
+
 	// Get git remote URL
 	remote, err := exec.Command("git", "remote", "get-url", "origin").Output()
 	if err != nil {
@@ -75,14 +75,14 @@ func detectPackURL(localPath bool) error {
 	}
 	remoteString := strings.TrimSpace(string(remote))
 	remoteString = strings.TrimSuffix(remoteString, ".git")
-	
+
 	// Get current branch
 	branch, err := exec.Command("git", "branch", "--show-current").Output()
 	if err != nil {
 		return fmt.Errorf("failed to get git branch: %w", err)
 	}
 	branchString := strings.TrimSpace(string(branch))
-	
+
 	// If branch is empty, try GITHUB_HEAD_REF environment variable
 	if branchString == "" {
 		if envBranch := os.Getenv("GITHUB_HEAD_REF"); envBranch != "" {
@@ -91,7 +91,7 @@ func detectPackURL(localPath bool) error {
 			return fmt.Errorf("could not determine branch name")
 		}
 	}
-	
+
 	// Parse remote URL to determine the hosting service
 	var urlString string
 	if strings.Contains(remoteString, "github.com") {
@@ -105,7 +105,7 @@ func detectPackURL(localPath bool) error {
 		// Default (Gitea/other): use /raw/branch/ pattern
 		urlString = remoteString + "/raw/branch/" + branchString + "/" + relPath
 	}
-	
+
 	fmt.Println(urlString)
 	return nil
 }

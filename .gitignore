@@ -1,3 +1,7 @@
 build/
+.copilot/
 .test
 pw.exe
+pw-gui.exe
+*.log
+*~
