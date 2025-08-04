@@ -9,7 +9,19 @@ import (
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
 
+// Build information - set by GoReleaser
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
+	// Set build information for version command
+	commands.BuildInfo.Version = version
+	commands.BuildInfo.Commit = commit
+	commands.BuildInfo.Date = date
+
 	// Create command registry with minimal setup
 	registry := commands.NewCommandRegistry()
 

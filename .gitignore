@@ -1,9 +1,48 @@
+# Build artifacts
 build/
 vendor/
-.copilot/
-.test
+dist/
 *.exe
 *.log
 *.upx
 *~
-.vscode
+
+# GoReleaser
+goreleaser
+.goreleaser/
+
+# Development artifacts
+.test
+.copilot/
+
+# Compressed binaries
+*.tar.gz
+*.zip
+
+# Version/build artifacts
+version.txt
+build-info.json
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Testing artifacts
+coverage.out
+*.test
+
+# Release artifacts
+checksums.txt
+metadata.json
+artifacts.json

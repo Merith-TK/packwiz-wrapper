@@ -1,0 +1,61 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Test
+        run: go test -v ./...
+
+      - name: Build headless
+        run: go build -o pw-headless ./cmd/pw
+
+      - name: Test headless binary
+        run: ./pw-headless version
+
+  build-snapshot:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Install cross-compilation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-x86-64
+
+      - name: Run GoReleaser Snapshot
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: build --snapshot --clean
+        env:
+          CC_FOR_WINDOWS_AMD64: x86_64-w64-mingw32-gcc
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: binaries
+          path: dist/*/

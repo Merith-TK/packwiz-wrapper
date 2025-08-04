@@ -33,4 +33,29 @@ headless-debug:
 check-upx:
 	@upx --version >nul 2>&1 || (echo "UPX not found. Install from https://upx.github.io/" && exit 1)
 
-.PHONY: default cli gui clean install cli-debug gui-debug check-upx
+# GoReleaser targets
+release-test:
+	goreleaser check
+
+release-snapshot:
+	goreleaser build --snapshot --clean
+
+release-dry-run:
+	goreleaser release --snapshot --skip-publish --clean
+
+release:
+	goreleaser release --clean
+
+.PHONY: default gui headless all clean install cli-debug headless-debug check-upx release-test release-snapshot release-dry-run release
+
+# GoReleaser targets
+release:
+	goreleaser release --clean
+
+release-snapshot:
+	goreleaser build --snapshot --clean
+
+release-test:
+	goreleaser check
+
+.PHONY: default gui headless all clean install gui-debug headless-debug check-upx release release-snapshot release-test

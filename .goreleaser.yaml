@@ -1,0 +1,79 @@
+# GoReleaser configuration for PackWiz Wrapper
+# Documentation: https://goreleaser.com
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  # GUI version (Windows x64 only - CGO limitations)
+  - id: "gui"
+    main: "./cmd/pw"
+    binary: "pw"
+    tags:
+      - gui
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+    goos:
+      - windows
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=1
+
+  # Headless version (multi-platform)  
+  - id: "headless"
+    main: "./cmd/pw"
+    binary: "pw-headless"
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+    goos:
+      - linux
+      - windows
+      - darwin
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
+      - arm
+      - "386"
+    goarm:
+      - "6"
+      - "7"
+    env:
+      - CGO_ENABLED=0
+
+archives:
+  - id: "gui-archives"
+    builds:
+      - gui
+    name_template: "pw-gui_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format: zip
+    
+  - id: "headless-archives" 
+    builds:
+      - headless
+    name_template: "pw-headless_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format: zip
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+release:
+  github:
+    owner: Merith-TK
+    name: packwrap2
+  draft: false
+  prerelease: auto
+  name_template: "PackWiz Wrapper v{{.Version}}"
