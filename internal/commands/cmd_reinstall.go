@@ -37,15 +37,14 @@ Examples:
 
 func reinstallMods(showVersions bool) error {
 	packDir, _ := os.Getwd()
-	client := packwiz.NewClient(packDir)
 
 	fmt.Println("Refreshing pack...")
-	if err := client.Execute([]string{"refresh"}); err != nil {
+	if err := ExecuteSelfCommand([]string{"refresh"}, packDir); err != nil {
 		return fmt.Errorf("failed to refresh pack: %w", err)
 	}
 
-	// Find pack directory
-	packLocation := client.GetPackDir()
+	// Find pack directory using our helper function
+	packLocation := findPackToml(packDir)
 	if packLocation == "" {
 		return fmt.Errorf("pack.toml not found")
 	}
@@ -116,7 +115,7 @@ func reinstallMods(showVersions bool) error {
 	fmt.Println("Removing existing mods...")
 	for _, mod := range modlist {
 		fmt.Printf("Removing: %s\n", mod.Name)
-		if err := client.Execute([]string{"remove", mod.Parse.ModID}); err != nil {
+		if err := ExecuteSelfCommand([]string{"remove", mod.Parse.ModID}, packLocation); err != nil {
 			fmt.Printf("Warning: failed to remove %s: %v\n", mod.Name, err)
 		}
 	}
@@ -135,7 +134,7 @@ func reinstallMods(showVersions bool) error {
 			fmt.Printf("Reinstalling: %s\n", mod.Name)
 		}
 
-		if err := reinstallSingleMod(client, mod, showVersions); err != nil {
+		if err := reinstallSingleMod(mod, showVersions, packLocation); err != nil {
 			fmt.Printf("Warning: failed to reinstall %s: %v\n", mod.Name, err)
 		} else {
 			fmt.Printf("Successfully reinstalled: %s\n", mod.Name)
@@ -146,7 +145,7 @@ func reinstallMods(showVersions bool) error {
 	return nil
 }
 
-func reinstallSingleMod(client *packwiz.Client, mod packwiz.ModToml, withVersions bool) error {
+func reinstallSingleMod(mod packwiz.ModToml, withVersions bool, packLocation string) error {
 	var arguments []string
 
 	if mod.Update.Modrinth.ModID != "" {
@@ -169,7 +168,7 @@ func reinstallSingleMod(client *packwiz.Client, mod packwiz.ModToml, withVersion
 		}
 	}
 
-	return client.Execute(arguments)
+	return ExecuteSelfCommand(arguments, packLocation)
 }
 
 func getModVersionForReinstall(mod packwiz.ModToml) string {

@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
-
-	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
 
 // CmdArbitrary provides arbitrary command execution
 func CmdArbitrary() (names []string, shortHelp, longHelp string, execute func([]string) error) {
-	return []string{"arbitrary", "exec", "run"},
+	return []string{"arbitrary", "arb", "exec", "run"},
 		"Execute arbitrary commands in pack context",
 		`Arbitrary Commands:
   pw arbitrary <command>  - Execute any command in pack directory
@@ -36,15 +33,12 @@ run the same command across multiple pack directories.`,
 
 func executeArbitraryCommand(args []string) error {
 	packDir, _ := os.Getwd()
-	client := packwiz.NewClient(packDir)
 
 	// Find pack directory to ensure we're in the right context
-	packLocation := client.GetPackDir()
+	packLocation := findPackToml(packDir)
 	if packLocation == "" {
 		fmt.Println("Warning: pack.toml not found, running command in current directory")
 		packLocation = packDir
-	} else {
-		packLocation = filepath.Dir(packLocation)
 	}
 
 	fmt.Printf("Executing arbitrary command in %s: %s\n", packLocation, args)

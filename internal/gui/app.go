@@ -24,7 +24,7 @@ func InitializeApp(app fyne.App, packManager *core.Manager) {
 	// Create the main window
 	Window = App.NewWindow("PackWiz Wrapper GUI")
 	Window.Resize(fyne.NewSize(800, 600))
-	Window.SetFixedSize(false)
+	Window.SetFixedSize(true)
 
 	// Initialize global shared state
 	InitializeSharedState()

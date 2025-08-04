@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
 
 // CmdMod provides enhanced mod management with smart URL parsing
@@ -30,11 +28,32 @@ Examples:
   pw m list`,
 		func(args []string) error {
 			packDir, _ := os.Getwd()
-			client := packwiz.NewClient(packDir)
+			
+			// Find pack directory
+			packLocation := findPackToml(packDir)
+			if packLocation == "" {
+				return fmt.Errorf("pack.toml not found")
+			}
 
 			if len(args) == 0 {
-				// Pass through to packwiz for help
-				return client.Execute([]string{"mod"})
+				// Show our own help instead of passing through
+				fmt.Println(`Smart Mod Command:
+  pw mod add <url|mr:slug:version>     - Add mod with smart URL detection
+  pw mod remove <name>                 - Remove mod
+  pw mod update [name]                 - Update mod(s)
+  pw mod list                          - List installed mods
+
+Smart URL Support:
+  - mr:cc-tweaked:Zoo9N9Dv            - Modrinth slug + version
+  - Full URLs (Modrinth/CurseForge)   - Auto-detected
+  - Traditional packwiz syntax        - Passed through
+
+Examples:
+  pw mod add mr:cc-tweaked:Zoo9N9Dv
+  pw mod add https://modrinth.com/mod/cc-tweaked
+  pw mod remove cc-tweaked
+  pw m list`)
+				return nil
 			}
 
 			switch args[0] {
@@ -42,41 +61,55 @@ Examples:
 				if len(args) < 2 {
 					return fmt.Errorf("mod add requires an identifier")
 				}
-				return addModSmart(client, args[1])
+				return addModSmart(packLocation, args[1])
+			case "remove", "rm":
+				if len(args) < 2 {
+					return fmt.Errorf("mod remove requires a mod name")
+				}
+				return ExecuteSelfCommand([]string{"remove", args[1]}, packLocation)
+			case "update":
+				if len(args) > 1 {
+					// Update specific mod
+					return ExecuteSelfCommand([]string{"update", args[1]}, packLocation)
+				} else {
+					// Update all mods
+					return ExecuteSelfCommand([]string{"update"}, packLocation)
+				}
+			case "list", "ls":
+				return ExecuteSelfCommand([]string{"list"}, packLocation)
 			default:
-				// Pass through to packwiz
-				return client.Execute(append([]string{"mod"}, args...))
+				return fmt.Errorf("unknown mod command: %s. Use 'pw mod' for help", args[0])
 			}
 		}
 }
 
 // Helper functions for smart mod management
-func addModSmart(client *packwiz.Client, identifier string) error {
+func addModSmart(packLocation, identifier string) error {
 	source, slug, version := parseModIdentifier(identifier)
 
 	switch source {
 	case "modrinth", "mr":
-		return addModrinthMod(client, slug, version)
+		return addModrinthMod(packLocation, slug, version)
 	case "curseforge", "cf":
-		return addCurseforgeMod(client, slug, version)
+		return addCurseforgeMod(packLocation, slug, version)
 	case "auto":
 		// Try Modrinth first, then CurseForge
-		if err := addModrinthMod(client, slug, version); err != nil {
+		if err := addModrinthMod(packLocation, slug, version); err != nil {
 			fmt.Printf("Modrinth failed, trying CurseForge: %v\n", err)
-			return addCurseforgeMod(client, slug, version)
+			return addCurseforgeMod(packLocation, slug, version)
 		}
 		return nil
 	case "url":
 		// Detect URL type and use appropriate command
 		if strings.Contains(identifier, "modrinth.com") {
-			return client.Execute([]string{"modrinth", "add", identifier})
+			return ExecuteSelfCommand([]string{"modrinth", "add", identifier}, packLocation)
 		} else if strings.Contains(identifier, "curseforge.com") {
-			return client.Execute([]string{"curseforge", "add", identifier})
+			return ExecuteSelfCommand([]string{"curseforge", "add", identifier}, packLocation)
 		} else {
 			// Generic URL - try modrinth first
-			if err := client.Execute([]string{"modrinth", "add", identifier}); err != nil {
+			if err := ExecuteSelfCommand([]string{"modrinth", "add", identifier}, packLocation); err != nil {
 				fmt.Printf("Modrinth failed, trying CurseForge: %v\n", err)
-				return client.Execute([]string{"curseforge", "add", identifier})
+				return ExecuteSelfCommand([]string{"curseforge", "add", identifier}, packLocation)
 			}
 			return nil
 		}
@@ -109,22 +142,22 @@ func parseModIdentifier(identifier string) (source, slug, version string) {
 	}
 }
 
-func addModrinthMod(client *packwiz.Client, slug, version string) error {
+func addModrinthMod(packLocation, slug, version string) error {
 	if version != "" {
 		// For specific versions, we can pass the version ID directly
-		return client.Execute([]string{"modrinth", "add", slug, "--version", version})
+		return ExecuteSelfCommand([]string{"modrinth", "add", slug, "--version", version}, packLocation)
 	} else {
 		// Latest version - just pass the slug
-		return client.Execute([]string{"modrinth", "add", slug})
+		return ExecuteSelfCommand([]string{"modrinth", "add", slug}, packLocation)
 	}
 }
 
-func addCurseforgeMod(client *packwiz.Client, slug, version string) error {
+func addCurseforgeMod(packLocation, slug, version string) error {
 	if version != "" {
 		// For CurseForge, version would be file ID
-		return client.Execute([]string{"curseforge", "add", slug, "--file", version})
+		return ExecuteSelfCommand([]string{"curseforge", "add", slug, "--file", version}, packLocation)
 	} else {
 		// Latest version - just pass the slug
-		return client.Execute([]string{"curseforge", "add", slug})
+		return ExecuteSelfCommand([]string{"curseforge", "add", slug}, packLocation)
 	}
 }

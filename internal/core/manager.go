@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -11,6 +12,60 @@ import (
 	"github.com/Merith-TK/packwiz-wrapper/pkg/packwrap"
 	"github.com/pelletier/go-toml"
 )
+
+// executePackwizCommand runs a packwiz command using self-execution
+func executePackwizCommand(args []string) error {
+	// Find the pack directory
+	wd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+	
+	packLocation := findPackToml(wd)
+	if packLocation == "" {
+		return fmt.Errorf("pack.toml not found")
+	}
+	
+	// Get current executable path
+	executable, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to get executable path: %w", err)
+	}
+	
+	// Execute self with packwiz arguments
+	cmd := exec.Command(executable, args...)
+	cmd.Dir = packLocation
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	
+	return cmd.Run()
+}
+
+// findPackToml finds the pack.toml file in the given directory or its parents
+func findPackToml(startDir string) string {
+	dir := startDir
+	for {
+		// Check current directory
+		packTomlPath := filepath.Join(dir, "pack.toml")
+		if _, err := os.Stat(packTomlPath); err == nil {
+			return dir
+		}
+		
+		// Check .minecraft subdirectory (common modpack pattern)
+		minecraftDir := filepath.Join(dir, ".minecraft")
+		packTomlPath = filepath.Join(minecraftDir, "pack.toml")
+		if _, err := os.Stat(packTomlPath); err == nil {
+			return minecraftDir
+		}
+		
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break // reached root
+		}
+		dir = parent
+	}
+	return ""
+}
 
 // Manager implements the PackManager interface
 type Manager struct {
@@ -29,8 +84,7 @@ func NewManager(logger packwrap.Logger) *Manager {
 
 // GetPackInfo retrieves information about a pack
 func (m *Manager) GetPackInfo(packDir string) (*packwrap.PackInfo, error) {
-	client := packwiz.NewClient(packDir)
-	packLocation := client.GetPackDir()
+	packLocation := findPackToml(packDir)
 	if packLocation == "" {
 		return nil, fmt.Errorf("pack.toml not found in %s", packDir)
 	}
@@ -68,14 +122,23 @@ func (m *Manager) GetPackInfo(packDir string) (*packwrap.PackInfo, error) {
 
 // RefreshPack refreshes the pack
 func (m *Manager) RefreshPack(packDir string) error {
-	client := packwiz.NewClient(packDir)
-	return client.Execute([]string{"refresh"})
+	// Change to the pack directory
+	oldDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+	defer os.Chdir(oldDir)
+	
+	if err := os.Chdir(packDir); err != nil {
+		return fmt.Errorf("failed to change to pack directory: %w", err)
+	}
+	
+	return executePackwizCommand([]string{"refresh"})
 }
 
 // ListMods lists all mods in the pack
 func (m *Manager) ListMods(packDir string) ([]*packwrap.ModInfo, error) {
-	client := packwiz.NewClient(packDir)
-	packLocation := client.GetPackDir()
+	packLocation := findPackToml(packDir)
 	if packLocation == "" {
 		return nil, fmt.Errorf("pack.toml not found")
 	}
@@ -144,7 +207,16 @@ func (m *Manager) ListMods(packDir string) ([]*packwrap.ModInfo, error) {
 
 // AddMod adds a mod to the pack
 func (m *Manager) AddMod(packDir string, modRef string) error {
-	client := packwiz.NewClient(packDir)
+	// Change to the pack directory
+	oldDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+	defer os.Chdir(oldDir)
+	
+	if err := os.Chdir(packDir); err != nil {
+		return fmt.Errorf("failed to change to pack directory: %w", err)
+	}
 
 	// Parse mod reference and build appropriate command
 	source, slug, version := m.parseModIdentifier(modRef)
@@ -166,25 +238,45 @@ func (m *Manager) AddMod(packDir string, modRef string) error {
 		args = []string{"add", modRef}
 	default:
 		// Try modrinth first, then curseforge
-		if err := client.Execute([]string{"modrinth", "add", modRef}); err != nil {
-			return client.Execute([]string{"curseforge", "add", modRef})
+		if err := executePackwizCommand([]string{"modrinth", "add", modRef}); err != nil {
+			return executePackwizCommand([]string{"curseforge", "add", modRef})
 		}
 		return nil
 	}
 
-	return client.Execute(args)
+	return executePackwizCommand(args)
 }
 
 // RemoveMod removes a mod from the pack
 func (m *Manager) RemoveMod(packDir string, modID string) error {
-	client := packwiz.NewClient(packDir)
-	return client.Execute([]string{"remove", modID})
+	// Change to the pack directory
+	oldDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+	defer os.Chdir(oldDir)
+	
+	if err := os.Chdir(packDir); err != nil {
+		return fmt.Errorf("failed to change to pack directory: %w", err)
+	}
+	
+	return executePackwizCommand([]string{"remove", modID})
 }
 
 // UpdateMod updates a mod in the pack
 func (m *Manager) UpdateMod(packDir string, modID string) error {
-	client := packwiz.NewClient(packDir)
-	return client.Execute([]string{"update", modID})
+	// Change to the pack directory
+	oldDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+	defer os.Chdir(oldDir)
+	
+	if err := os.Chdir(packDir); err != nil {
+		return fmt.Errorf("failed to change to pack directory: %w", err)
+	}
+	
+	return executePackwizCommand([]string{"update", modID})
 }
 
 // ImportFromFile imports mods from a file
@@ -205,10 +297,19 @@ func (m *Manager) ImportFromFile(packDir string, filename string) error {
 
 // ImportFromURLs imports mods from URLs
 func (m *Manager) ImportFromURLs(packDir string, urls []string) error {
-	client := packwiz.NewClient(packDir)
+	// Change to the pack directory
+	oldDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+	defer os.Chdir(oldDir)
+	
+	if err := os.Chdir(packDir); err != nil {
+		return fmt.Errorf("failed to change to pack directory: %w", err)
+	}
 
 	for _, url := range urls {
-		if err := client.Execute([]string{"add", url}); err != nil {
+		if err := executePackwizCommand([]string{"add", url}); err != nil {
 			m.logger.Error("Failed to import %s: %v", url, err)
 			return err
 		}
@@ -219,13 +320,22 @@ func (m *Manager) ImportFromURLs(packDir string, urls []string) error {
 
 // ExportPack exports the pack to the specified format
 func (m *Manager) ExportPack(packDir string, format packwrap.ExportFormat) (string, error) {
-	client := packwiz.NewClient(packDir)
+	// Change to the pack directory
+	oldDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get working directory: %w", err)
+	}
+	defer os.Chdir(oldDir)
+	
+	if err := os.Chdir(packDir); err != nil {
+		return "", fmt.Errorf("failed to change to pack directory: %w", err)
+	}
 
 	switch format {
 	case packwrap.ExportCurseForge:
-		return "", client.Execute([]string{"curseforge", "export"})
+		return "", executePackwizCommand([]string{"curseforge", "export"})
 	case packwrap.ExportModrinth:
-		return "", client.Execute([]string{"modrinth", "export"})
+		return "", executePackwizCommand([]string{"modrinth", "export"})
 	default:
 		return "", fmt.Errorf("export format %s not yet implemented", format)
 	}

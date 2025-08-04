@@ -9,18 +9,14 @@ import (
 
 // CreateLogsTab creates the logs display tab
 func CreateLogsTab() fyne.CanvasObject {
-	// Header card
-	headerCard := widget.NewCard("📋 Application Logs", 
-		"Monitor PackWrap2 operations and debug information", 
-		widget.NewRichText())
-
 	// Initialize global log widget
 	GlobalLogWidget = widget.NewRichText()
 	GlobalLogWidget.ParseMarkdown("📋 **PackWrap2 GUI Started**\n\nWelcome! Application logs will appear here as you use the GUI.\n\n")
+	GlobalLogWidget.Wrapping = fyne.TextWrapWord
 
-	// Wrap logs in a scrollable container
+	// Wrap logs in a scrollable container with proper sizing
 	logScroll := container.NewScroll(GlobalLogWidget)
-	logScroll.SetMinSize(fyne.NewSize(500, 350))
+	logScroll.SetMinSize(fyne.NewSize(400, 300))
 
 	// Log controls
 	clearButton := widget.NewButton("🗑️ Clear Logs", func() {
@@ -35,27 +31,14 @@ func CreateLogsTab() fyne.CanvasObject {
 
 	controlActions := container.NewHBox(clearButton, exportButton)
 
-	controlCard := widget.NewCard("🔧 Log Controls", 
-		"Manage log display and export",
-		controlActions)
-
-	// Main log display
-	logDisplayCard := widget.NewCard("📄 Log Output", 
-		"Real-time application logs and command output",
-		logScroll)
-
-	// Layout everything
-	content := container.NewVBox(
-		headerCard,
-		widget.NewSeparator(),
-		controlCard,
-		widget.NewSeparator(),
-		logDisplayCard,
+	// Use BorderContainer to give more space to the log area
+	content := container.NewBorder(
+		controlActions, // top
+		nil,           // bottom
+		nil,           // left
+		nil,           // right
+		logScroll,     // center - takes remaining space
 	)
 
-	// Wrap in scroll container
-	scroll := container.NewScroll(content)
-	scroll.SetMinSize(fyne.NewSize(600, 400))
-	
-	return scroll
+	return content
 }

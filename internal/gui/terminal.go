@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -75,7 +76,14 @@ func ShowCommandOutput(title, command string, args []string, workingDir string) 
 	}()
 }
 
-// RunPwCommand is a wrapper function for pw.exe commands that should show output
+// RunPwCommand is a wrapper function that calls the current executable as CLI
 func RunPwCommand(title string, args []string, packDir string) {
-	ShowCommandOutput(title, "./pw.exe", args, packDir)
+	// Get the path to the current executable
+	execPath, err := os.Executable()
+	if err != nil {
+		// Fallback to a generic error display
+		ShowCommandOutput(title, "error", []string{"Failed to get executable path"}, packDir)
+		return
+	}
+	ShowCommandOutput(title, execPath, args, packDir)
 }

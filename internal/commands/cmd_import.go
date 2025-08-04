@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
 
 // CmdImport provides mod import functionality
@@ -101,7 +99,12 @@ func importFromStrings(urls []string, autoConfirm bool) error {
 
 func importMods(mods []string, autoConfirm bool) error {
 	packDir, _ := os.Getwd()
-	client := packwiz.NewClient(packDir)
+	
+	// Find pack directory using our helper function
+	packLocation := findPackToml(packDir)
+	if packLocation == "" {
+		return fmt.Errorf("pack.toml not found")
+	}
 
 	fmt.Printf("Found %d mod(s) to import:\n", len(mods))
 	for i, mod := range mods {
@@ -139,7 +142,7 @@ func importMods(mods []string, autoConfirm bool) error {
 			args = append(args, "--name", name)
 		}
 
-		if err := client.Execute(args); err != nil {
+		if err := ExecuteSelfCommand(args, packLocation); err != nil {
 			errorMsg := fmt.Sprintf("Failed to import %s: %v", mod, err)
 			errors = append(errors, errorMsg)
 			fmt.Printf("  ERROR: %s\n", errorMsg)

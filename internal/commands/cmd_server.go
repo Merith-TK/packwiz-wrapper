@@ -7,8 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-
-	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
 
 // CmdServer provides test server functionality
@@ -50,10 +48,9 @@ Examples:
 
 func setupServer() error {
 	packDir, _ := os.Getwd()
-	client := packwiz.NewClient(packDir)
 
 	// Find pack directory
-	packLocation := client.GetPackDir()
+	packLocation := findPackToml(packDir)
 	if packLocation == "" {
 		return fmt.Errorf("pack.toml not found")
 	}

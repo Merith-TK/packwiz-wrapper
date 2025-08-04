@@ -6,8 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
 
 // CmdDetect provides pack URL detection from git remotes
@@ -39,10 +37,9 @@ Examples:
 
 func detectPackURL(localPath bool) error {
 	packDir, _ := os.Getwd()
-	client := packwiz.NewClient(packDir)
 
 	// Find pack.toml location
-	packLocation := client.GetPackDir()
+	packLocation := findPackToml(packDir)
 	if packLocation == "" {
 		return fmt.Errorf("pack.toml not found")
 	}

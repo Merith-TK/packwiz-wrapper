@@ -2,6 +2,8 @@ package commands
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"sort"
@@ -9,6 +11,31 @@ import (
 
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
+
+// findPackToml recursively searches for pack.toml starting from the given directory
+func findPackToml(startPath string) string {
+	currentPath := startPath
+	for {
+		// Check for pack.toml in current directory
+		packPath := filepath.Join(currentPath, "pack.toml")
+		if _, err := os.Stat(packPath); err == nil {
+			return filepath.Dir(packPath)
+		}
+
+		// Check for pack.toml in .minecraft subdirectory
+		mcPackPath := filepath.Join(currentPath, ".minecraft", "pack.toml")
+		if _, err := os.Stat(mcPackPath); err == nil {
+			return filepath.Dir(mcPackPath)
+		}
+
+		parent := filepath.Dir(currentPath)
+		if parent == currentPath {
+			break // reached root
+		}
+		currentPath = parent
+	}
+	return ""
+}
 
 // Command interface for all commands - minimal and simple
 type Command interface {
@@ -87,15 +114,46 @@ func extractFunctionName(fn interface{}) string {
 // BaseCommand provides common functionality for all commands
 type BaseCommand struct {
 	PackDir string
-	Client  *packwiz.Client
 }
 
 // NewBaseCommand creates a new base command
 func NewBaseCommand(packDir string) *BaseCommand {
 	return &BaseCommand{
 		PackDir: packDir,
-		Client:  packwiz.NewClient(packDir),
 	}
+}
+
+// ExecutePackwizCommand runs a packwiz command using self-execution
+func (b *BaseCommand) ExecutePackwizCommand(args []string) error {
+	return ExecuteSelfCommand(args, b.PackDir)
+}
+
+// ExecuteSelfCommand executes a command by calling the current executable
+func ExecuteSelfCommand(args []string, packDir string) error {
+	// Change to pack directory if specified
+	if packDir != "" {
+		oldDir, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get working directory: %w", err)
+		}
+		defer os.Chdir(oldDir)
+
+		if err := os.Chdir(packDir); err != nil {
+			return fmt.Errorf("failed to change to pack directory: %w", err)
+		}
+	}
+
+	// For self-execution, we can use the integrated packwiz directly
+	// Save original args and replace with the command we want to execute
+	originalArgs := os.Args
+	os.Args = append([]string{os.Args[0]}, args...)
+
+	// Call packwiz directly
+	packwiz.PackwizExecute()
+
+	// Restore original args
+	os.Args = originalArgs
+	return nil
 }
 
 // CommandRegistry holds all registered commands

@@ -5,18 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Merith-TK/packwiz-wrapper/cmd/pw/commands"
+	"github.com/Merith-TK/packwiz-wrapper/internal/commands"
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
 
 func main() {
-	// Get current directory as pack directory
-	packDir, err := os.Getwd()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-
 	// Create command registry with minimal setup
 	registry := commands.NewCommandRegistry()
 
@@ -69,12 +62,16 @@ func main() {
 		return
 	}
 
-	// PASSTHROUGH: Unknown commands go to packwiz
-	client := packwiz.NewClient(packDir)
-	if err := client.Execute(args); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
+	// PASSTHROUGH: Unknown commands go to integrated packwiz
+	// Save original args and replace with the command we want to execute
+	originalArgs := os.Args
+	os.Args = append([]string{os.Args[0]}, args...)
+
+	// Call packwiz directly
+	packwiz.PackwizExecute()
+
+	// Restore original args (though we probably won't get here)
+	os.Args = originalArgs
 }
 
 // showMainHelp displays the main help with all registered commands

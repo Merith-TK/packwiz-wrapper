@@ -2,58 +2,54 @@ package gui
 
 import (
 	"fmt"
+	"os"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"github.com/Merith-TK/packwiz-wrapper/internal/core"
 )
 
 // CreatePackInfoTab creates the pack information tab
 func CreatePackInfoTab() fyne.CanvasObject {
-	// Header card
-	headerCard := widget.NewCard("📦 Pack Information", 
-		"View and manage your modpack details", 
-		widget.NewRichText())
-
-	// Pack directory selection section
+	// Pack directory selection at top - compact version
 	packDirEntry := widget.NewEntry()
 	packDirEntry.SetPlaceHolder("Pack directory path...")
-	packDirEntry.SetText(GetGlobalPackDir())
 
-	// Update global pack dir when entry changes
-	packDirEntry.OnChanged = func(text string) {
-		SetGlobalPackDir(text)
+	// Convert relative path to absolute path for display
+	currentDir := GetGlobalPackDir()
+	if currentDir == "./" || currentDir == "." {
+		if wd, err := os.Getwd(); err == nil {
+			currentDir = wd
+		}
 	}
+	packDirEntry.SetText(currentDir)
+
+	// Update global pack dir when entry changes (debounced to avoid checking on every keystroke)
+	packDirEntry.OnChanged = debouncePathUpdate(func(text string) {
+		SetGlobalPackDir(text)
+	}, 500*time.Millisecond)
 
 	var packInfoText *widget.RichText
 
-	packDirButton := widget.NewButton("📁 Browse", func() {
-		folderDialog := dialog.NewFolderOpen(func(folder fyne.ListableURI, err error) {
-			if err != nil {
-				if GlobalLogWidget != nil {
-					GlobalLogWidget.ParseMarkdown(GlobalLogWidget.String() + "\n[ERROR] Failed to select folder: " + err.Error())
-				}
-				return
-			}
-			if folder != nil {
-				packDirEntry.SetText(folder.Path())
-				SetGlobalPackDir(folder.Path())
+	packDirButton := widget.NewButton("📁", func() {
+		ShowEnhancedFolderDialog(func(selectedPath string) {
+			if selectedPath != "" {
+				packDirEntry.SetText(selectedPath)
+				SetGlobalPackDir(selectedPath)
 				if packInfoText != nil {
-					refreshPackInfo(folder.Path(), packInfoText)
+					refreshPackInfo(selectedPath, packInfoText)
 				}
 			}
-		}, Window)
-		folderDialog.Show()
+		})
 	})
+	packDirButton.Importance = widget.LowImportance
 
-	packDirContainer := container.NewBorder(nil, nil, packDirButton, nil, packDirEntry)
+	packDirContainer := container.NewBorder(nil, nil, nil, packDirButton, packDirEntry)
 
-	// Directory selection card
-	dirSelectionCard := widget.NewCard("📂 Pack Directory", 
-		"Select your modpack folder",
-		packDirContainer)
+	// Compact directory selection
+	dirSelectionCard := widget.NewCard("📂 Pack Directory", "", packDirContainer)
 
 	// Action buttons
 	refreshButton := widget.NewButton("🔄 Refresh Info", func() {
@@ -67,12 +63,13 @@ func CreatePackInfoTab() fyne.CanvasObject {
 	refreshPackButton.Importance = widget.HighImportance
 
 	actionsContainer := container.NewHBox(refreshButton, refreshPackButton)
-	actionsCard := widget.NewCard("⚡ Quick Actions", 
-		"Manage your pack data",
-		actionsContainer)
+	actionsCard := widget.NewCard("", "", actionsContainer)
 
 	// Pack info display
 	packInfoText = widget.NewRichText()
+	// Initialize pack info text widget with proper wrapping
+	packInfoText = widget.NewRichText()
+	packInfoText.Wrapping = fyne.TextWrapWord
 	packInfoText.ParseMarkdown(`**No pack loaded**
 
 📁 **Getting Started:**
@@ -89,14 +86,9 @@ func CreatePackInfoTab() fyne.CanvasObject {
 
 💡 **Tip:** Use "Refresh Pack" to update mod information from remote sources`)
 
-	// Wrap the pack info in a scrollable container
+	// Wrap the pack info in a scrollable container with proper sizing
 	packInfoScroll := container.NewScroll(packInfoText)
-	packInfoScroll.SetMinSize(fyne.NewSize(500, 300))
-
-	// Pack details card
-	detailsCard := widget.NewCard("📋 Pack Details", 
-		"Current pack information",
-		packInfoScroll)
+	packInfoScroll.SetMinSize(fyne.NewSize(400, 200))
 
 	// Register callback for pack directory changes
 	RegisterPackDirCallback(func(dir string) {
@@ -107,22 +99,16 @@ func CreatePackInfoTab() fyne.CanvasObject {
 	// Don't auto-refresh on creation to avoid logging before GlobalLogWidget is ready
 	// User can click refresh when they're ready
 
-	// Layout everything
-	content := container.NewVBox(
-		headerCard,
-		widget.NewSeparator(),
-		dirSelectionCard,
-		widget.NewSeparator(),
-		actionsCard,
-		widget.NewSeparator(),
-		detailsCard,
+	// Use BorderContainer to give more space to the pack info area
+	content := container.NewBorder(
+		container.NewVBox(dirSelectionCard, actionsCard), // top
+		nil,              // bottom
+		nil,              // left
+		nil,              // right
+		packInfoScroll,   // center - takes remaining space
 	)
 
-	// Wrap in scroll container
-	scroll := container.NewScroll(content)
-	scroll.SetMinSize(fyne.NewSize(600, 400))
-	
-	return scroll
+	return content
 }
 
 func refreshPackInfo(packDir string, infoWidget *widget.RichText) {

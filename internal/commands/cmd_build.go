@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
 
 // CmdBuild provides enhanced build/export operations
@@ -88,8 +86,7 @@ func executeBuildFormat(format, packDir, packName string) error {
 func exportCurseForge(packDir, packName string) error {
 	fmt.Println("Exporting CurseForge pack...")
 
-	client := packwiz.NewClient(packDir)
-	if err := client.Execute([]string{"curseforge", "export"}); err != nil {
+	if err := ExecuteSelfCommand([]string{"curseforge", "export"}, packDir); err != nil {
 		return fmt.Errorf("packwiz curseforge export failed: %w", err)
 	}
 
@@ -99,8 +96,7 @@ func exportCurseForge(packDir, packName string) error {
 func exportModrinth(packDir, packName string) error {
 	fmt.Println("Exporting Modrinth pack...")
 
-	client := packwiz.NewClient(packDir)
-	if err := client.Execute([]string{"modrinth", "export"}); err != nil {
+	if err := ExecuteSelfCommand([]string{"modrinth", "export"}, packDir); err != nil {
 		return fmt.Errorf("packwiz modrinth export failed: %w", err)
 	}
 
@@ -126,8 +122,7 @@ func exportServer(packDir, packName string) error {
 }
 
 func moveBuildFiles(extension, packDir, baseName string) error {
-	client := packwiz.NewClient(packDir)
-	packTomlDir := client.GetPackDir()
+	packTomlDir := findPackToml(packDir)
 	if packTomlDir == "" {
 		return fmt.Errorf("pack.toml not found")
 	}

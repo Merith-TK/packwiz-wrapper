@@ -1,7 +1,8 @@
 build/
+vendor/
 .copilot/
 .test
-pw.exe
-pw-gui.exe
+*.exe
 *.log
+*.upx
 *~
