@@ -11,7 +11,12 @@ import (
 
 // CreateModsTab creates the mod management tab
 func CreateModsTab() fyne.CanvasObject {
-	// Mod list
+	// Header card
+	headerCard := widget.NewCard("🧩 Mod Management", 
+		"Add, remove, and update mods in your pack", 
+		widget.NewRichText())
+
+	// Mod list data
 	var modData []*ModDisplayInfo
 	var selectedModIndex = -1
 
@@ -56,7 +61,7 @@ func CreateModsTab() fyne.CanvasObject {
 	}
 
 	// Load mods button
-	loadModsButton := widget.NewButton("Load Mods", func() {
+	loadModsButton := widget.NewButton("🔄 Load Mods", func() {
 		loadMods(GetGlobalPackDir(), &modData, modList)
 	})
 
@@ -67,7 +72,7 @@ func CreateModsTab() fyne.CanvasObject {
 	addModEntry := widget.NewEntry()
 	addModEntry.SetPlaceHolder("Mod URL or mr:modid:version or cf:projectid")
 
-	addModButton := widget.NewButton("Add Mod", func() {
+	addModButton := widget.NewButton("➕ Add Mod", func() {
 		addMod(GetGlobalPackDir(), addModEntry.Text, &modData, modList)
 		addModEntry.SetText("")
 	})
@@ -84,34 +89,52 @@ func CreateModsTab() fyne.CanvasObject {
 	)
 
 	// Mod actions
-	removeModButton := widget.NewButton("Remove Selected", func() {
+	removeModButton := widget.NewButton("🗑️ Remove Selected", func() {
 		removeSelectedMod(GetGlobalPackDir(), selectedModIndex, &modData, modList)
 	})
+	removeModButton.Importance = widget.DangerImportance
 
-	updateModButton := widget.NewButton("Update Selected", func() {
+	updateModButton := widget.NewButton("⬆️ Update Selected", func() {
 		updateSelectedMod(GetGlobalPackDir(), selectedModIndex, &modData, modList)
 	})
 
-	updateAllButton := widget.NewButton("Update All", func() {
+	updateAllButton := widget.NewButton("🔄 Update All", func() {
 		updateAllMods(GetGlobalPackDir(), &modData, modList)
 	})
+	updateAllButton.Importance = widget.MediumImportance
 
-	actionContainer := container.NewHBox(removeModButton, updateModButton, updateAllButton)
+	actionContainer := container.NewGridWithColumns(3, 
+		removeModButton, 
+		updateModButton, 
+		updateAllButton)
 
-	return container.NewBorder(
-		container.NewVBox(
-			widget.NewLabel("Pack Directory:"),
-			packDirContainer,
-			widget.NewSeparator(),
-			widget.NewLabel("Add Mod:"),
-			addModContainer,
-			widget.NewSeparator(),
-			widget.NewLabel("Installed Mods:"),
-		),
-		actionContainer,
-		nil, nil,
-		modListScroll,
+	actionsCard := widget.NewCard("⚡ Mod Actions", 
+		"Manage your installed mods",
+		actionContainer)
+
+	// Installed mods card
+	modListCard := widget.NewCard("📦 Installed Mods", 
+		"Select a mod to perform actions",
+		modListScroll)
+
+	// Layout everything
+	content := container.NewVBox(
+		headerCard,
+		widget.NewSeparator(),
+		widget.NewCard("📂 Pack Directory", "Current pack location", packDirContainer),
+		widget.NewSeparator(),
+		widget.NewCard("➕ Add New Mod", "Search and add mods", addModContainer),
+		widget.NewSeparator(),
+		modListCard,
+		widget.NewSeparator(),
+		actionsCard,
 	)
+
+	// Wrap in scroll container
+	scroll := container.NewScroll(content)
+	scroll.SetMinSize(fyne.NewSize(600, 400))
+	
+	return scroll
 }
 
 func loadMods(packDir string, modData *[]*ModDisplayInfo, modList *widget.List) {

@@ -12,9 +12,14 @@ import (
 
 // CreateImportExportTab creates the import/export tab
 func CreateImportExportTab() fyne.CanvasObject {
+	// Header card
+	headerCard := widget.NewCard("📥 Import & Export", 
+		"Import mod lists and export your pack in various formats", 
+		widget.NewRichText())
+
 	// Pack directory input that syncs with global state
 	packDirEntry := widget.NewEntry()
-	packDirEntry.SetPlaceHolder("Pack directory (or leave empty for current)")
+	packDirEntry.SetPlaceHolder("Pack directory (synced globally)")
 	packDirEntry.SetText(GetGlobalPackDir())
 
 	// Register callback to update entry when global pack dir changes
@@ -85,14 +90,25 @@ func CreateImportExportTab() fyne.CanvasObject {
 		exportButton,
 	)
 
-	return container.NewVBox(
-		widget.NewLabel("Pack Directory:"),
-		packDirEntry,
+	// Layout everything
+	content := container.NewVBox(
+		headerCard,
 		widget.NewSeparator(),
-		importContainer,
+		widget.NewCard("📂 Pack Directory", "Current pack location", packDirEntry),
 		widget.NewSeparator(),
-		exportContainer,
+		
+		// Two-column layout for import/export
+		container.NewGridWithColumns(2,
+			widget.NewCard("📥 Import Mods", "Import from files", importContainer),
+			widget.NewCard("📤 Export Pack", "Export for sharing", exportContainer),
+		),
 	)
+
+	// Wrap in scroll container
+	scroll := container.NewScroll(content)
+	scroll.SetMinSize(fyne.NewSize(600, 400))
+	
+	return scroll
 }
 
 func importFromFile(packDir string, filename string) {

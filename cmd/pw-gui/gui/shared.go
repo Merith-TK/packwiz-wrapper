@@ -55,8 +55,18 @@ func (l *GUILogger) Debug(msg string, args ...interface{}) {
 
 func (l *GUILogger) appendLog(level, msg string) {
 	entry := fmt.Sprintf("[%s] %s\n", level, msg)
-	currentText := l.logWidget.String()
-	l.logWidget.ParseMarkdown(currentText + entry)
+	
+	// Log to the logger's own widget if available
+	if l.logWidget != nil {
+		currentText := l.logWidget.String()
+		l.logWidget.ParseMarkdown(currentText + entry)
+	}
+	
+	// Also log to global widget if available
+	if GlobalLogWidget != nil {
+		currentText := GlobalLogWidget.String()
+		GlobalLogWidget.ParseMarkdown(currentText + entry)
+	}
 }
 
 // Pack directory management functions

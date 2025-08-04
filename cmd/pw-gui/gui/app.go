@@ -32,12 +32,13 @@ func InitializeApp(app fyne.App, packManager *core.Manager) {
 	// Create the main UI with tabs
 	tabs := container.NewAppTabs()
 
-	// Add all tabs
-	tabs.Append(container.NewTabItem("Pack Info", CreatePackInfoTab()))
-	tabs.Append(container.NewTabItem("Mods", CreateModsTab()))
-	tabs.Append(container.NewTabItem("Import/Export", CreateImportExportTab()))
-	tabs.Append(container.NewTabItem("Server", CreateServerTab()))
-	tabs.Append(container.NewTabItem("Logs", CreateLogsTab()))
+	// Add all tabs - create Logs tab first to initialize GlobalLogWidget
+	tabs.Append(container.NewTabItem("🏠 Welcome", CreateWelcomeTab()))
+	tabs.Append(container.NewTabItem("📋 Logs", CreateLogsTab()))
+	tabs.Append(container.NewTabItem("📦 Pack Info", CreatePackInfoTab()))
+	tabs.Append(container.NewTabItem("🧩 Mods", CreateModsTab()))
+	tabs.Append(container.NewTabItem("📥 Import/Export", CreateImportExportTab()))
+	tabs.Append(container.NewTabItem("🖥️ Server", CreateServerTab()))
 
 	// Set tab location
 	tabs.SetTabLocation(container.TabLocationTop)
