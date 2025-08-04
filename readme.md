@@ -5,6 +5,31 @@ and then run
 
 - `go install github.com/Merith-TK/packwiz-wrapper/cmd/pw@main`
 
+## Building from Source
+
+### Full Version (with GUI)
+```bash
+go build -tags gui -o pw.exe ./cmd/pw
+# or use make
+make gui
+```
+
+### Headless Version (for embedded systems)
+```bash
+go build -o pw-headless.exe ./cmd/pw  
+# or use make
+make headless
+```
+
+The headless version is about 69% smaller (~18MB vs ~59MB) and excludes all GUI dependencies, making it perfect for:
+- Embedded systems
+- Servers  
+- Docker containers
+- CI/CD pipelines
+- Minimal deployments
+
+Both versions have identical CLI functionality - only the `pw gui` command differs.
+
 # how to use
 
 - `pw version`
