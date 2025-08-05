@@ -1,7 +1,15 @@
+// Package utils provides Java version management utilities for PackWrap.
+// 
+// Main functionalities:
+// - Java version detection and validation
+// - Automatic download and installation of Java from Adoptium
+// - Minecraft version to Java version mapping
+// - Managed Java installation discovery
+//
+// Supported Java versions: 8, 17, 21
 package utils
 
 import (
-	"archive/zip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,7 +21,25 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/Merith-TK/utils/pkg/archive"
 )
+
+// Supported Java versions
+const (
+	Java8  = 8
+	Java17 = 17
+	Java21 = 21
+)
+
+var SupportedJavaVersions = []int{Java8, Java17, Java21}
+
+// Adoptium repository mappings for downloading Java
+var adoptiumRepos = map[int]string{
+	Java8:  "adoptium/temurin8-binaries",
+	Java17: "adoptium/temurin17-binaries",
+	Java21: "adoptium/temurin21-binaries",
+}
 
 // JavaVersion represents a detected Java installation
 type JavaVersion struct {
@@ -22,19 +48,47 @@ type JavaVersion struct {
 	Major   int    // Major version number (e.g., 21)
 }
 
+// ============================================================================
+// PUBLIC API FUNCTIONS
+// ============================================================================
+
+// getJavaExecutablePath returns the path to the java executable for a given installation directory
+func getJavaExecutablePath(javaDir string) string {
+	javaExe := filepath.Join(javaDir, "bin", "java")
+	if runtime.GOOS == "windows" {
+		javaExe = filepath.Join(javaDir, "bin", "java.exe")
+	}
+	return javaExe
+}
+
+// getManagedJavaPath returns the installation directory for a managed Java version
+func getManagedJavaPath(majorVersion int) string {
+	dataDir := getDataDirectory()
+	return filepath.Join(dataDir, "java", fmt.Sprintf("java-%d", majorVersion))
+}
+
+// IsValidJavaVersion checks if a Java version is supported
+func IsValidJavaVersion(version int) bool {
+	for _, v := range SupportedJavaVersions {
+		if v == version {
+			return true
+		}
+	}
+	return false
+}
+
 // GetRequiredJavaVersion returns the required Java version for a given Minecraft version
 func GetRequiredJavaVersion(mcVersion string) int {
-	// Parse version to determine Java requirement
 	version := parseMinecraftVersion(mcVersion)
 	
 	if version.Compare("1.20.5") >= 0 {
-		return 21 // Java 21 for 1.20.5+
+		return Java21 // Java 21 for 1.20.5+
 	} else if version.Compare("1.17") >= 0 {
-		return 17 // Java 17 for 1.17-1.20.4
+		return Java17 // Java 17 for 1.17-1.20.4
 	} else if version.Compare("1.13") >= 0 {
-		return 17 // Java 17 recommended for 1.13-1.16.5 (can use 8)
+		return Java17 // Java 17 recommended for 1.13-1.16.5 (can use 8)
 	} else {
-		return 8 // Java 8 for 1.12.2 and below
+		return Java8 // Java 8 for 1.12.2 and below
 	}
 }
 
@@ -43,11 +97,11 @@ func GetStrictJavaVersion(mcVersion string) int {
 	version := parseMinecraftVersion(mcVersion)
 	
 	if version.Compare("1.20.5") >= 0 {
-		return 21 // Java 21 required for 1.20.5+
+		return Java21 // Java 21 required for 1.20.5+
 	} else if version.Compare("1.17") >= 0 {
-		return 17 // Java 17 required for 1.17+
+		return Java17 // Java 17 required for 1.17+
 	} else {
-		return 8 // Java 8 minimum for everything else
+		return Java8 // Java 8 minimum for everything else
 	}
 }
 
@@ -142,10 +196,7 @@ func EnsureJava(mcVersion string) (*JavaVersion, error) {
 	}
 	
 	// Detect the downloaded Java version
-	javaExe := filepath.Join(javaPath, "bin", "java")
-	if runtime.GOOS == "windows" {
-		javaExe = filepath.Join(javaPath, "bin", "java.exe")
-	}
+	javaExe := getJavaExecutablePath(javaPath)
 	
 	java, err := DetectJavaVersion(javaExe)
 	if err != nil {
@@ -156,9 +207,17 @@ func EnsureJava(mcVersion string) (*JavaVersion, error) {
 	return &java, nil
 }
 
+// ============================================================================
+// JAVA INSTALLATION AND DOWNLOAD
+// ============================================================================
+
 // DownloadAndInstallJava downloads and extracts a Java runtime
 func DownloadAndInstallJava(majorVersion int) (string, error) {
-	// Get storage directory (Fyne data directory for consistency)
+	if !IsValidJavaVersion(majorVersion) {
+		return "", fmt.Errorf("unsupported Java version: %d (supported: %v)", majorVersion, SupportedJavaVersions)
+	}
+	
+	// Get storage directory
 	dataDir := getDataDirectory()
 	javaDir := filepath.Join(dataDir, "java")
 	
@@ -167,7 +226,7 @@ func DownloadAndInstallJava(majorVersion int) (string, error) {
 	}
 	
 	// Check if already installed
-	versionDir := filepath.Join(javaDir, fmt.Sprintf("java-%d", majorVersion))
+	versionDir := getManagedJavaPath(majorVersion)
 	if _, err := os.Stat(versionDir); err == nil {
 		return versionDir, nil
 	}
@@ -197,20 +256,13 @@ func DownloadAndInstallJava(majorVersion int) (string, error) {
 
 // getJavaDownloadURL constructs the download URL for the specified Java version
 func getJavaDownloadURL(majorVersion int) (string, string, error) {
+	if !IsValidJavaVersion(majorVersion) {
+		return "", "", fmt.Errorf("unsupported Java version: %d (supported: %v)", majorVersion, SupportedJavaVersions)
+	}
+	
+	repo := adoptiumRepos[majorVersion]
 	arch := getArchitecture()
 	hostOS := getHostOS()
-	
-	var repo string
-	switch majorVersion {
-	case 8:
-		repo = "adoptium/temurin8-binaries"
-	case 17:
-		repo = "adoptium/temurin17-binaries"
-	case 21:
-		repo = "adoptium/temurin21-binaries"
-	default:
-		return "", "", fmt.Errorf("unsupported Java version: %d", majorVersion)
-	}
 	
 	// Get latest release info from GitHub API
 	releaseURL := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
@@ -309,72 +361,53 @@ func downloadFile(url, filepath string) error {
 }
 
 // extractJavaZip extracts a Java JRE zip file to the specified directory
+// This handles the special case where Java archives have a root directory that should be skipped
 func extractJavaZip(zipPath, extractDir string) error {
 	fmt.Printf("Extracting Java to: %s\n", extractDir)
 	
-	reader, err := zip.OpenReader(zipPath)
+	// Create a temporary directory for extraction
+	tempDir := extractDir + "-temp"
+	defer os.RemoveAll(tempDir) // Clean up temp directory
+	
+	// Extract to temporary directory first
+	if err := archive.Unzip(zipPath, tempDir); err != nil {
+		return fmt.Errorf("failed to extract zip: %w", err)
+	}
+	
+	// Find the Java installation directory (should be the only subdirectory)
+	entries, err := os.ReadDir(tempDir)
 	if err != nil {
-		return fmt.Errorf("failed to open zip: %w", err)
-	}
-	defer reader.Close()
-	
-	if err := os.MkdirAll(extractDir, 0755); err != nil {
-		return fmt.Errorf("failed to create extract directory: %w", err)
+		return fmt.Errorf("failed to read temp directory: %w", err)
 	}
 	
-	// Find the root directory in the zip (usually something like jdk-21.0.1+12-jre)
-	var rootDir string
-	for _, file := range reader.File {
-		if file.FileInfo().IsDir() && strings.Count(file.Name, "/") == 1 {
-			rootDir = strings.TrimSuffix(file.Name, "/")
+	var javaDir string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			javaDir = filepath.Join(tempDir, entry.Name())
 			break
 		}
 	}
 	
-	for _, file := range reader.File {
-		// Skip the root directory itself and extract contents directly
-		if file.Name == rootDir+"/" {
-			continue
-		}
-		
-		// Remove root directory from path
-		relativePath := strings.TrimPrefix(file.Name, rootDir+"/")
-		if relativePath == "" {
-			continue
-		}
-		
-		path := filepath.Join(extractDir, relativePath)
-		
-		if file.FileInfo().IsDir() {
-			if err := os.MkdirAll(path, file.FileInfo().Mode()); err != nil {
-				return fmt.Errorf("failed to create directory %s: %w", path, err)
-			}
-			continue
-		}
-		
-		// Create parent directories
-		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-			return fmt.Errorf("failed to create parent directory for %s: %w", path, err)
-		}
-		
-		// Extract file
-		rc, err := file.Open()
-		if err != nil {
-			return fmt.Errorf("failed to open file in zip: %w", err)
-		}
-		
-		outFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.FileInfo().Mode())
-		if err != nil {
-			rc.Close()
-			return fmt.Errorf("failed to create output file %s: %w", path, err)
-		}
-		
-		_, err = io.Copy(outFile, rc)
-		outFile.Close()
-		rc.Close()
-		
-		if err != nil {
-			return fmt.Errorf("failed to extract file %s: %w", path, err)
+	if javaDir == "" {
+		return fmt.Errorf("no Java directory found in archive")
+	}
+	
+	// Move the Java directory contents to the final location
+	if err := os.MkdirAll(extractDir, 0755); err != nil {
+		return fmt.Errorf("failed to create extract directory: %w", err)
+	}
+	
+	// Move all contents from javaDir to extractDir
+	javaEntries, err := os.ReadDir(javaDir)
+	if err != nil {
+		return fmt.Errorf("failed to read Java directory: %w", err)
+	}
+	
+	for _, entry := range javaEntries {
+		src := filepath.Join(javaDir, entry.Name())
+		dst := filepath.Join(extractDir, entry.Name())
+		if err := os.Rename(src, dst); err != nil {
+			return fmt.Errorf("failed to move %s to %s: %w", src, dst, err)
 		}
 	}
 	
@@ -405,10 +438,8 @@ func findManagedJavaInstallations() ([]JavaVersion, error) {
 		}
 		
 		// Check if this looks like a Java installation
-		javaExe := filepath.Join(javaDir, entry.Name(), "bin", "java")
-		if runtime.GOOS == "windows" {
-			javaExe = filepath.Join(javaDir, entry.Name(), "bin", "java.exe")
-		}
+		installDir := filepath.Join(javaDir, entry.Name())
+		javaExe := getJavaExecutablePath(installDir)
 		
 		if version, err := DetectJavaVersion(javaExe); err == nil {
 			installations = append(installations, version)
@@ -417,6 +448,10 @@ func findManagedJavaInstallations() ([]JavaVersion, error) {
 	
 	return installations, nil
 }
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
 
 // getDataDirectory returns the data directory for storing managed Java installations
 // Uses Fyne-compatible location for consistency
@@ -482,27 +517,26 @@ func parseJavaVersionString(output string) string {
 	return ""
 }
 
-// parseJavaMajorVersion extracts major version number
+// parseJavaMajorVersion extracts major version number from Java version string
 func parseJavaMajorVersion(version string) int {
 	// Handle both old (1.8.0_391) and new (21.0.1) formats
 	if strings.HasPrefix(version, "1.") {
 		// Old format: 1.8.0_391 -> 8
-		parts := strings.Split(version, ".")
-		if len(parts) >= 2 {
-			if major, err := strconv.Atoi(parts[1]); err == nil {
-				return major
-			}
-		}
-	} else {
-		// New format: 21.0.1 -> 21
-		parts := strings.Split(version, ".")
-		if len(parts) >= 1 {
-			if major, err := strconv.Atoi(parts[0]); err == nil {
-				return major
-			}
-		}
+		return parseVersionPart(version, 1) // Get second part after "1."
 	}
 	
+	// New format: 21.0.1 -> 21
+	return parseVersionPart(version, 0) // Get first part
+}
+
+// parseVersionPart extracts a specific part of a version string
+func parseVersionPart(version string, partIndex int) int {
+	parts := strings.Split(version, ".")
+	if len(parts) > partIndex {
+		if major, err := strconv.Atoi(parts[partIndex]); err == nil {
+			return major
+		}
+	}
 	return 0
 }
 
@@ -514,6 +548,10 @@ func getVersionList(installations []JavaVersion) []int {
 	}
 	return versions
 }
+
+// ============================================================================
+// MINECRAFT VERSION HANDLING
+// ============================================================================
 
 // MinecraftVersion represents a parsed Minecraft version for comparison
 type MinecraftVersion struct {

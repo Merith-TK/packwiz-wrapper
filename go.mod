@@ -1,9 +1,13 @@
 module github.com/Merith-TK/packwiz-wrapper
 
-go 1.18
+go 1.23
+
+toolchain go1.24.3
 
 require (
 	fyne.io/fyne/v2 v2.6.2
+	github.com/BurntSushi/toml v1.5.0
+	github.com/Merith-TK/utils v0.0.0-20250710011649-922eab8d0105
 	github.com/packwiz/packwiz v0.0.0-20250119231123-241f24b550f6
 	github.com/pelletier/go-toml v1.9.5
 )
@@ -11,7 +15,6 @@ require (
 require (
 	codeberg.org/jmansfield/go-modrinth v0.5.0 // indirect
 	fyne.io/systray v1.11.0 // indirect
-	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
