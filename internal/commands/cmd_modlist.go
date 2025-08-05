@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 	"github.com/pelletier/go-toml"
 )
 
@@ -60,7 +61,7 @@ func generateModlist(rawOutput bool, showVersions bool, onlyPrint bool) error {
 	packDir, _ := os.Getwd()
 
 	// Find pack directory
-	packLocation := findPackToml(packDir)
+	packLocation := utils.FindPackToml(packDir)
 	if packLocation == "" {
 		return fmt.Errorf("pack.toml not found")
 	}

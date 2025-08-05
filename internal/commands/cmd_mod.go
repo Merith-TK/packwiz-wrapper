@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 )
 
 // CmdMod provides enhanced mod management with smart URL parsing
@@ -28,9 +30,9 @@ Examples:
   pw m list`,
 		func(args []string) error {
 			packDir, _ := os.Getwd()
-			
+
 			// Find pack directory
-			packLocation := findPackToml(packDir)
+			packLocation := utils.FindPackToml(packDir)
 			if packLocation == "" {
 				return fmt.Errorf("pack.toml not found")
 			}

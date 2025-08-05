@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 )
 
 // CmdImport provides mod import functionality
@@ -99,9 +101,9 @@ func importFromStrings(urls []string, autoConfirm bool) error {
 
 func importMods(mods []string, autoConfirm bool) error {
 	packDir, _ := os.Getwd()
-	
+
 	// Find pack directory using our helper function
-	packLocation := findPackToml(packDir)
+	packLocation := utils.FindPackToml(packDir)
 	if packLocation == "" {
 		return fmt.Errorf("pack.toml not found")
 	}

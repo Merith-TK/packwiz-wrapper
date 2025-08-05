@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 )
 
 // CmdBuild provides enhanced build/export operations
@@ -122,7 +124,7 @@ func exportServer(packDir, packName string) error {
 }
 
 func moveBuildFiles(extension, packDir, baseName string) error {
-	packTomlDir := findPackToml(packDir)
+	packTomlDir := utils.FindPackToml(packDir)
 	if packTomlDir == "" {
 		return fmt.Errorf("pack.toml not found")
 	}

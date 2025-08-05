@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"reflect"
 	"runtime"
 	"sort"
@@ -11,31 +10,6 @@ import (
 
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 )
-
-// findPackToml recursively searches for pack.toml starting from the given directory
-func findPackToml(startPath string) string {
-	currentPath := startPath
-	for {
-		// Check for pack.toml in current directory
-		packPath := filepath.Join(currentPath, "pack.toml")
-		if _, err := os.Stat(packPath); err == nil {
-			return filepath.Dir(packPath)
-		}
-
-		// Check for pack.toml in .minecraft subdirectory
-		mcPackPath := filepath.Join(currentPath, ".minecraft", "pack.toml")
-		if _, err := os.Stat(mcPackPath); err == nil {
-			return filepath.Dir(mcPackPath)
-		}
-
-		parent := filepath.Dir(currentPath)
-		if parent == currentPath {
-			break // reached root
-		}
-		currentPath = parent
-	}
-	return ""
-}
 
 // Command interface for all commands - minimal and simple
 type Command interface {

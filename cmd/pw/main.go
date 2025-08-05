@@ -7,6 +7,7 @@ import (
 
 	"github.com/Merith-TK/packwiz-wrapper/internal/commands"
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 )
 
 // Build information - set by GoReleaser
@@ -76,9 +77,35 @@ func main() {
 	}
 
 	// PASSTHROUGH: Unknown commands go to integrated packwiz
+	// But first, check if we're in a valid packwiz directory
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: failed to get working directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	packLocation := utils.FindPackToml(wd)
+	if packLocation == "" {
+		fmt.Fprintf(os.Stderr, "Error: pack.toml not found in current directory or parent directories\n")
+		fmt.Fprintf(os.Stderr, "Make sure you're in a packwiz project directory or one of its subdirectories\n")
+		os.Exit(1)
+	}
+
 	// Save original args and replace with the command we want to execute
 	originalArgs := os.Args
 	os.Args = append([]string{os.Args[0]}, args...)
+
+	// Only add --pack-file if it's not already present in args
+	hasPackFile := false
+	for _, arg := range os.Args {
+		if arg == "--pack-file" {
+			hasPackFile = true
+			break
+		}
+	}
+	if packLocation != "" && !hasPackFile {
+		os.Args = append(os.Args, "--pack-file", packLocation+"/pack.toml")
+	}
 
 	// Call packwiz directly
 	packwiz.PackwizExecute()

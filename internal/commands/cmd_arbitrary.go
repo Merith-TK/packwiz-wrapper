@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 )
 
 // CmdArbitrary provides arbitrary command execution
@@ -35,7 +37,7 @@ func executeArbitraryCommand(args []string) error {
 	packDir, _ := os.Getwd()
 
 	// Find pack directory to ensure we're in the right context
-	packLocation := findPackToml(packDir)
+	packLocation := utils.FindPackToml(packDir)
 	if packLocation == "" {
 		fmt.Println("Warning: pack.toml not found, running command in current directory")
 		packLocation = packDir

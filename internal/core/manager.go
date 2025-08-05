@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 	"github.com/Merith-TK/packwiz-wrapper/pkg/packwrap"
 	"github.com/pelletier/go-toml"
 )
@@ -20,51 +21,25 @@ func executePackwizCommand(args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
-	
-	packLocation := findPackToml(wd)
+
+	packLocation := utils.FindPackToml(wd)
 	if packLocation == "" {
 		return fmt.Errorf("pack.toml not found")
 	}
-	
+
 	// Get current executable path
 	executable, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("failed to get executable path: %w", err)
 	}
-	
+
 	// Execute self with packwiz arguments
 	cmd := exec.Command(executable, args...)
 	cmd.Dir = packLocation
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
-	return cmd.Run()
-}
 
-// findPackToml finds the pack.toml file in the given directory or its parents
-func findPackToml(startDir string) string {
-	dir := startDir
-	for {
-		// Check current directory
-		packTomlPath := filepath.Join(dir, "pack.toml")
-		if _, err := os.Stat(packTomlPath); err == nil {
-			return dir
-		}
-		
-		// Check .minecraft subdirectory (common modpack pattern)
-		minecraftDir := filepath.Join(dir, ".minecraft")
-		packTomlPath = filepath.Join(minecraftDir, "pack.toml")
-		if _, err := os.Stat(packTomlPath); err == nil {
-			return minecraftDir
-		}
-		
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break // reached root
-		}
-		dir = parent
-	}
-	return ""
+	return cmd.Run()
 }
 
 // Manager implements the PackManager interface
@@ -84,7 +59,7 @@ func NewManager(logger packwrap.Logger) *Manager {
 
 // GetPackInfo retrieves information about a pack
 func (m *Manager) GetPackInfo(packDir string) (*packwrap.PackInfo, error) {
-	packLocation := findPackToml(packDir)
+	packLocation := utils.FindPackToml(packDir)
 	if packLocation == "" {
 		return nil, fmt.Errorf("pack.toml not found in %s", packDir)
 	}
@@ -128,17 +103,17 @@ func (m *Manager) RefreshPack(packDir string) error {
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
 	defer os.Chdir(oldDir)
-	
+
 	if err := os.Chdir(packDir); err != nil {
 		return fmt.Errorf("failed to change to pack directory: %w", err)
 	}
-	
+
 	return executePackwizCommand([]string{"refresh"})
 }
 
 // ListMods lists all mods in the pack
 func (m *Manager) ListMods(packDir string) ([]*packwrap.ModInfo, error) {
-	packLocation := findPackToml(packDir)
+	packLocation := utils.FindPackToml(packDir)
 	if packLocation == "" {
 		return nil, fmt.Errorf("pack.toml not found")
 	}
@@ -213,7 +188,7 @@ func (m *Manager) AddMod(packDir string, modRef string) error {
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
 	defer os.Chdir(oldDir)
-	
+
 	if err := os.Chdir(packDir); err != nil {
 		return fmt.Errorf("failed to change to pack directory: %w", err)
 	}
@@ -255,11 +230,11 @@ func (m *Manager) RemoveMod(packDir string, modID string) error {
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
 	defer os.Chdir(oldDir)
-	
+
 	if err := os.Chdir(packDir); err != nil {
 		return fmt.Errorf("failed to change to pack directory: %w", err)
 	}
-	
+
 	return executePackwizCommand([]string{"remove", modID})
 }
 
@@ -271,11 +246,11 @@ func (m *Manager) UpdateMod(packDir string, modID string) error {
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
 	defer os.Chdir(oldDir)
-	
+
 	if err := os.Chdir(packDir); err != nil {
 		return fmt.Errorf("failed to change to pack directory: %w", err)
 	}
-	
+
 	return executePackwizCommand([]string{"update", modID})
 }
 
@@ -303,7 +278,7 @@ func (m *Manager) ImportFromURLs(packDir string, urls []string) error {
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
 	defer os.Chdir(oldDir)
-	
+
 	if err := os.Chdir(packDir); err != nil {
 		return fmt.Errorf("failed to change to pack directory: %w", err)
 	}
@@ -326,7 +301,7 @@ func (m *Manager) ExportPack(packDir string, format packwrap.ExportFormat) (stri
 		return "", fmt.Errorf("failed to get working directory: %w", err)
 	}
 	defer os.Chdir(oldDir)
-	
+
 	if err := os.Chdir(packDir); err != nil {
 		return "", fmt.Errorf("failed to change to pack directory: %w", err)
 	}

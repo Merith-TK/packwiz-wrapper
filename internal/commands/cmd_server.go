@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 )
 
 // CmdServer provides test server functionality
@@ -50,7 +52,7 @@ func setupServer() error {
 	packDir, _ := os.Getwd()
 
 	// Find pack directory
-	packLocation := findPackToml(packDir)
+	packLocation := utils.FindPackToml(packDir)
 	if packLocation == "" {
 		return fmt.Errorf("pack.toml not found")
 	}

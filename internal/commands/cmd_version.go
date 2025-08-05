@@ -24,17 +24,17 @@ func CmdVersion() (names []string, shortHelp, longHelp string, execute func([]st
 			if version == "" {
 				version = Version // fallback to const
 			}
-			
+
 			fmt.Printf("PackWrap version %s\n", version)
-			
+
 			if BuildInfo.Commit != "" && BuildInfo.Commit != "none" {
 				fmt.Printf("Git commit: %s\n", BuildInfo.Commit)
 			}
-			
+
 			if BuildInfo.Date != "" && BuildInfo.Date != "unknown" {
 				fmt.Printf("Built: %s\n", BuildInfo.Date)
 			}
-			
+
 			return nil
 		}
 }
