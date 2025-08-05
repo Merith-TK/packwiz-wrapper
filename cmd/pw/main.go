@@ -53,6 +53,7 @@ func main() {
 
 		// Development
 		commands.CmdServer, // server, test-server, start
+		commands.CmdJava,   // java (Java installation management)
 
 		// Just add more function references here - no () needed!
 	)

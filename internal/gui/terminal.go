@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -42,8 +43,15 @@ func ShowCommandOutput(title, command string, args []string, workingDir string) 
 	// Run command in background and update output
 	go func() {
 		cmd := exec.Command(command, args...)
-		if workingDir != "" && workingDir != "./" {
-			cmd.Dir = workingDir
+		
+		// Set working directory if specified and valid
+		if workingDir != "" && workingDir != "./" && workingDir != "." {
+			// Convert to absolute path to ensure it's valid
+			if absDir, err := filepath.Abs(workingDir); err == nil {
+				if stat, err := os.Stat(absDir); err == nil && stat.IsDir() {
+					cmd.Dir = absDir
+				}
+			}
 		}
 
 		// Get combined output (stdout + stderr)

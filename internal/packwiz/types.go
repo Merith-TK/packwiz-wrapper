@@ -41,6 +41,7 @@ type ModToml struct {
 type PackToml struct {
 	Name        string `toml:"name"`
 	Author      string `toml:"author"`
+	Version     string `toml:"version,omitempty"`
 	McVersion   string `toml:"mc-version"`
 	PackFormat  string `toml:"pack-format"`
 	Description string `toml:"description,omitempty"`
@@ -49,4 +50,13 @@ type PackToml struct {
 		HashFormat string `toml:"hash-format"`
 		Hash       string `toml:"hash"`
 	} `toml:"index"`
+	Versions struct {
+		Fabric    string `toml:"fabric,omitempty"`
+		Minecraft string `toml:"minecraft,omitempty"`
+		Forge     string `toml:"forge,omitempty"`
+		Quilt     string `toml:"quilt,omitempty"`
+	} `toml:"versions,omitempty"`
+	Options struct {
+		AcceptableGameVersions []string `toml:"acceptable-game-versions,omitempty"`
+	} `toml:"options,omitempty"`
 }
