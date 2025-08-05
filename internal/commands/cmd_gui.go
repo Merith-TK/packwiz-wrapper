@@ -32,7 +32,7 @@ Examples:
 
 func launchGUI() error {
 	// Create a new Fyne app
-	currentApp := app.New()
+	currentApp := app.NewWithID("xyz.merith.packwrap")
 
 	// Initialize pack manager with logger
 	logger := gui.NewGUILogger(nil) // Will be set properly in the GUI

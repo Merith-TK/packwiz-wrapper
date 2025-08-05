@@ -99,14 +99,18 @@ func (l *GUILogger) appendLog(level, msg string) {
 
 	// Log to the logger's own widget if available
 	if l.logWidget != nil {
-		currentText := l.logWidget.String()
-		l.logWidget.ParseMarkdown(currentText + entry)
+		fyne.Do(func() {
+			currentText := l.logWidget.String()
+			l.logWidget.ParseMarkdown(currentText + entry)
+		})
 	}
 
 	// Also log to global widget if available
 	if GlobalLogWidget != nil {
-		currentText := GlobalLogWidget.String()
-		GlobalLogWidget.ParseMarkdown(currentText + entry)
+		fyne.Do(func() {
+			currentText := GlobalLogWidget.String()
+			GlobalLogWidget.ParseMarkdown(currentText + entry)
+		})
 	}
 }
 
@@ -116,10 +120,12 @@ func SetGlobalPackDir(dir string) {
 		dir = "./"
 	}
 	globalPackDir = dir
-	// Notify all registered callbacks
-	for _, callback := range packDirCallbacks {
-		callback(dir)
-	}
+	// Notify all registered callbacks on the main thread
+	fyne.Do(func() {
+		for _, callback := range packDirCallbacks {
+			callback(dir)
+		}
+	})
 }
 
 func RegisterPackDirCallback(callback func(string)) {

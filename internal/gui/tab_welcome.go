@@ -9,7 +9,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 	"github.com/Merith-TK/packwiz-wrapper/internal/core"
 )
@@ -40,11 +39,43 @@ func CreateWelcomeTab() fyne.CanvasObject {
 	statusCard := widget.NewCard("📊 Pack Status", "No pack loaded",
 		widget.NewLabel("Select a pack directory to get started"))
 
+	// Pack information display widget
+	packInfoWidget := widget.NewRichText()
+	packInfoWidget.Wrapping = fyne.TextWrapWord
+	packInfoWidget.ParseMarkdown(`# No Pack Loaded
+
+## 📁 Getting Started
+- Click **"📁 Browse"** above to select your modpack directory
+- The directory should contain a **pack.toml** file
+- Or use **"✨ Create New Pack"** to set up a new modpack
+
+## 💡 What You'll See Here
+Once a pack is loaded, this area will display:
+- **Pack Name** and description
+- **Author** information
+- **Minecraft Version** compatibility
+- **Mod Count** and pack format
+- **Pack Directory** location
+
+---
+*Ready to get started? Select a pack directory above!*`)
+
 	// Update global pack dir when entry changes (debounced to avoid checking on every keystroke)
 	packDirEntry.OnChanged = debouncePathUpdate(func(text string) {
 		SetGlobalPackDir(text)
-		updateWelcomeStatus(text, statusCard)
+		updateWelcomeStatus(text, statusCard, packInfoWidget)
 	}, 500*time.Millisecond)
+
+	// Action buttons
+	refreshButton := widget.NewButton("🔄 Refresh Info", func() {
+		refreshWelcomePackInfo(GetGlobalPackDir(), statusCard, packInfoWidget)
+	})
+	refreshButton.Importance = widget.MediumImportance
+
+	refreshPackButton := widget.NewButton("🔧 Refresh Pack", func() {
+		refreshWelcomePack(GetGlobalPackDir(), statusCard, packInfoWidget)
+	})
+	refreshPackButton.Importance = widget.HighImportance
 
 	// Quick Actions
 	createButton := widget.NewButton("✨ Create New Pack", func() {
@@ -52,55 +83,30 @@ func CreateWelcomeTab() fyne.CanvasObject {
 	})
 	createButton.Importance = widget.HighImportance
 
-	importButton := widget.NewButton("📥 Import Pack", func() {
-		fileDialog := dialog.NewFileOpen(func(file fyne.URIReadCloser, err error) {
-			if err != nil {
-				if GlobalLogWidget != nil {
-					GlobalLogWidget.ParseMarkdown(GlobalLogWidget.String() + "\n[ERROR] Failed to select file: " + err.Error())
-				}
-				return
-			}
-			if file != nil {
-				if GlobalLogWidget != nil {
-					GlobalLogWidget.ParseMarkdown(GlobalLogWidget.String() + "\n[INFO] Selected import file: " + file.URI().Path())
-				}
-				file.Close()
-			}
-		}, Window)
-		fileDialog.SetFilter(storage.NewExtensionFileFilter([]string{".txt", ".md", ".json"}))
-		fileDialog.Show()
-	})
+	quickActionsGrid := container.NewGridWithColumns(3, refreshButton, refreshPackButton, createButton)
 
-	settingsButton := widget.NewButton("⚙️ Settings", func() {
-		dialog.ShowInformation("Settings", "Settings panel coming soon!", Window)
-	})
-
-	quickActionsGrid := container.NewGridWithColumns(3, createButton, importButton, settingsButton)
-
-	// Getting Started Guide
-	guideContent := widget.NewRichTextFromMarkdown(`**Quick Start Guide:**
-
-1. **📂 Choose Directory** - Select or create a modpack folder
-2. **🎯 Setup Pack** - Create new or load existing pack
-3. **🔧 Manage Mods** - Use Mods tab to add/remove mods
-4. **🚀 Test & Share** - Use Server tab to test locally`)
-
-	// Two-column layout: Status on left, guide on right
+	// Two-column layout: Status and detailed pack info
 	leftColumn := container.NewVBox(statusCard)
+
+	// Pack info in a scrollable container
+	packInfoScroll := container.NewScroll(packInfoWidget)
+	packInfoScroll.SetMinSize(fyne.NewSize(450, 350))
 	rightColumn := container.NewVBox(
-		widget.NewCard("📋 Getting Started", "", guideContent),
+		widget.NewCard("📄 Pack Information", "", packInfoScroll),
 	)
 
 	mainContent := container.NewGridWithColumns(2, leftColumn, rightColumn)
 
 	// Register callback for pack directory changes from other tabs
 	RegisterPackDirCallback(func(dir string) {
-		packDirEntry.SetText(dir)
-		updateWelcomeStatus(dir, statusCard)
+		fyne.Do(func() {
+			packDirEntry.SetText(dir)
+			updateWelcomeStatus(dir, statusCard, packInfoWidget)
+		})
 	})
 
 	// Update status immediately with current directory
-	updateWelcomeStatus(GetGlobalPackDir(), statusCard)
+	updateWelcomeStatus(GetGlobalPackDir(), statusCard, packInfoWidget)
 
 	// Main layout - compact without scroll
 	content := container.NewVBox(
@@ -112,9 +118,17 @@ func CreateWelcomeTab() fyne.CanvasObject {
 	return content
 }
 
-// updateWelcomeStatus updates the status card based on the current pack directory
-func updateWelcomeStatus(packDir string, statusCard *widget.Card) {
-	if statusCard == nil {
+// updateWelcomeStatus updates the status card based on the current pack directory (thread-safe)
+func updateWelcomeStatus(packDir string, statusCard *widget.Card, packInfoWidget *widget.RichText) {
+	// Ensure all UI updates happen on the main thread
+	fyne.Do(func() {
+		updateWelcomeStatusUI(packDir, statusCard, packInfoWidget)
+	})
+}
+
+// updateWelcomeStatusUI performs the actual UI updates (main thread only)
+func updateWelcomeStatusUI(packDir string, statusCard *widget.Card, packInfoWidget *widget.RichText) {
+	if statusCard == nil || packInfoWidget == nil {
 		return
 	}
 
@@ -137,6 +151,24 @@ func updateWelcomeStatus(packDir string, statusCard *widget.Card) {
 		statusCard.SetTitle("📊 Pack Status")
 		statusCard.SetSubTitle("Directory selected")
 		statusCard.SetContent(widget.NewLabel("No pack found. Use 'Create New Pack' to set up here."))
+
+		// Update pack info widget with error message
+		errorMsg := fmt.Sprintf(`# No Pack Found
+
+## 📁 Directory Information
+- **Selected Path:** %s
+- **Error:** %s
+
+## 💡 Troubleshooting Tips
+- Make sure the directory contains a **pack.toml** file
+- Check if there's a **.minecraft** subdirectory with pack.toml
+- Verify the path is correct and accessible
+- Use **"✨ Create New Pack"** to set up a new pack here
+
+---
+*Need help? Check the path or create a new pack!*`, packDir, err.Error())
+
+		packInfoWidget.ParseMarkdown(errorMsg)
 		return
 	}
 
@@ -150,6 +182,32 @@ Ready to manage!`,
 		packInfo.Author,
 		packInfo.McVersion,
 		packInfo.ModCount)))
+
+	// Update detailed pack info widget
+	detailedInfo := fmt.Sprintf(`# %s
+
+## 📋 Pack Details
+- **Author:** %s
+- **Minecraft Version:** %s
+- **Pack Format:** %s
+- **Mod Count:** %d
+- **Pack Directory:** %s
+
+## 📝 Description
+%s
+
+---
+*Pack loaded successfully! You can now use other tabs to manage mods, import/export, or start a server.*`,
+		packInfo.Name,
+		packInfo.Author,
+		packInfo.McVersion,
+		packInfo.PackFormat,
+		packInfo.ModCount,
+		packInfo.PackDir,
+		packInfo.Description,
+	)
+
+	packInfoWidget.ParseMarkdown(detailedInfo)
 }
 
 // showCreatePackDialog shows a dialog for creating a new pack
@@ -212,4 +270,41 @@ func createNewPack(name, author, mcVersion, description string) {
 		"--mc-version", mcVersion,
 		"--description", description,
 	}, packDir)
+}
+
+// refreshWelcomePackInfo refreshes the pack information display
+func refreshWelcomePackInfo(packDir string, statusCard *widget.Card, packInfoWidget *widget.RichText) {
+	if packDir == "" {
+		packDir = "./"
+	}
+
+	logger := NewGUILogger(GlobalLogWidget)
+
+	logger.Info("Loading pack info from: %s", packDir)
+
+	// Use the same logic as updateWelcomeStatus but force refresh
+	fyne.Do(func() {
+		updateWelcomeStatusUI(packDir, statusCard, packInfoWidget)
+	})
+}
+
+// refreshWelcomePack refreshes the pack using packwiz refresh command
+func refreshWelcomePack(packDir string, statusCard *widget.Card, packInfoWidget *widget.RichText) {
+	if packDir == "" {
+		packDir = "./"
+	}
+
+	logger := NewGUILogger(GlobalLogWidget)
+	manager := core.NewManager(logger)
+
+	err := manager.RefreshPack(packDir)
+	if err != nil {
+		fyne.Do(func() {
+			packInfoWidget.ParseMarkdown(fmt.Sprintf("**Refresh Error:** %s", err.Error()))
+		})
+		return
+	}
+
+	// Refresh the pack info after successful refresh
+	refreshWelcomePackInfo(packDir, statusCard, packInfoWidget)
 }
