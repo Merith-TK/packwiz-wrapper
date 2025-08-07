@@ -25,7 +25,7 @@ Examples:
 			if len(args) > 0 {
 				action = args[0]
 			}
-			
+
 			switch action {
 			case "changelog":
 				return generateChangelog()
@@ -46,23 +46,23 @@ Examples:
 func generateChangelog() error {
 	packDir, _ := os.Getwd()
 	buildDir := filepath.Join(packDir, ".build")
-	
+
 	// Ensure .build directory exists
 	if err := os.MkdirAll(buildDir, 0755); err != nil {
 		return fmt.Errorf("failed to create .build directory: %w", err)
 	}
-	
+
 	changelogPath := filepath.Join(buildDir, "CHANGELOG.md")
-	
+
 	fmt.Println("Generating changelog...")
-	
+
 	// Create changelog file
 	file, err := os.Create(changelogPath)
 	if err != nil {
 		return fmt.Errorf("failed to create changelog file: %w", err)
 	}
 	defer file.Close()
-	
+
 	// Generate git log
 	fmt.Println("Generating git log...")
 	cmd := exec.Command("git", "log", "--pretty=format:%h - %s (%ci)", "--abbrev-commit")
@@ -76,25 +76,25 @@ func generateChangelog() error {
 		file.Write(output)
 		file.WriteString("\n\n")
 	}
-	
+
 	// Add mod list if available
 	modlistPath := filepath.Join(packDir, "modlist.md")
 	if _, err := os.Stat(modlistPath); err == nil {
 		fmt.Println("Adding mod list to changelog...")
 		file.WriteString("<details><summary>Mod List</summary>\n\n")
-		
+
 		modlistContent, err := os.ReadFile(modlistPath)
 		if err != nil {
 			fmt.Printf("Warning: failed to read modlist.md: %v\n", err)
 		} else {
 			file.Write(modlistContent)
 		}
-		
+
 		file.WriteString("</details>\n")
 	} else {
 		// Generate mod list on the fly
 		fmt.Println("Generating mod list for changelog...")
-		if err := generateModlist(true, true); err != nil {
+		if err := generateModlist(true, true, false); err != nil {
 			fmt.Printf("Warning: failed to generate mod list: %v\n", err)
 		} else {
 			// Try to read the generated modlist
@@ -105,21 +105,21 @@ func generateChangelog() error {
 			}
 		}
 	}
-	
+
 	fmt.Printf("Changelog generated: %s\n", changelogPath)
 	return nil
 }
 
 func generateReleaseFiles() error {
 	fmt.Println("Generating release files...")
-	
+
 	// This would typically build all export formats
 	packDir, _ := os.Getwd()
 	packName := filepath.Base(packDir)
 	if err := executeBuildFormat("all", packDir, packName); err != nil {
 		return fmt.Errorf("failed to build release files: %w", err)
 	}
-	
+
 	fmt.Println("Release files generated in .build directory")
 	return nil
 }
