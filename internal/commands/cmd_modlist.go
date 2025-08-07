@@ -19,15 +19,18 @@ func CmdModlist() (names []string, shortHelp, longHelp string, execute func([]st
   pw modlist              - Generate modlist.md file
   pw modlist raw          - Output raw mod list (no markdown)
   pw modlist versions     - Include mod versions in output
+  pw modlist print        - Only prints to terminal, does not save to a file
   pw modlist help         - Show this help
 
 Examples:
   pw modlist              - Generate formatted modlist.md
   pw modlist raw          - Show raw mod names only
-  pw modlist versions     - Generate modlist with version info`,
+  pw modlist versions     - Generate modlist with version info
+  pw modlist print        - Only print modlist to terminal`,
 		func(args []string) error {
 			rawOutput := false
 			showVersions := false
+			onlyPrint := false
 
 			// Parse arguments
 			for _, arg := range args {
@@ -36,21 +39,24 @@ Examples:
 					rawOutput = true
 				case "versions":
 					showVersions = true
+				case "print":
+					onlyPrint = true
 				case "help":
 					fmt.Println("Usage: pw modlist [options]")
 					fmt.Println("Options:")
 					fmt.Println("  raw      - Output raw modlist without markdown formatting")
 					fmt.Println("  versions - Show mod versions")
+					fmt.Println("  print    - Only print modlist to terminal")
 					fmt.Println("  help     - Show this help")
 					return nil
 				}
 			}
 
-			return generateModlist(rawOutput, showVersions)
+			return generateModlist(rawOutput, showVersions, onlyPrint)
 		}
 }
 
-func generateModlist(rawOutput, showVersions bool) error {
+func generateModlist(rawOutput bool, showVersions bool, onlyPrint bool) error {
 	packDir, _ := os.Getwd()
 
 	// Find pack directory
@@ -72,11 +78,11 @@ func generateModlist(rawOutput, showVersions bool) error {
 		return fmt.Errorf("failed to decode index.toml: %w", err)
 	}
 
-	// Prepare output file (only if not raw output)
+	// Prepare output file (only if not raw output or print only)
 	var outputFile *os.File
 	outputPath := filepath.Join(packDir, "modlist.md")
 
-	if !rawOutput {
+	if (!rawOutput) && (!onlyPrint) {
 		os.Remove(outputPath) // Remove existing file
 		outputFile, err = os.OpenFile(outputPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {

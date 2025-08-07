@@ -11,7 +11,7 @@ import (
 
 // CmdBatch provides batch operations across multiple pack directories
 func CmdBatch() (names []string, shortHelp, longHelp string, execute func([]string) error) {
-	return []string{"batch", "multi"},
+	return []string{"batch", "multi", "bulk"},
 		"Run commands across multiple directories",
 		`Batch Commands:
   pw batch <command>           - Run command in all subdirectories with pack.toml
@@ -115,7 +115,7 @@ func runBatchMode(refresh bool, skipPackCheck bool, args []string) error {
 		fmt.Printf("[%d/%d] Processing: %s\n", i+1, len(targetDirs), dirName)
 
 		var err error
-		
+
 		// Check if this is an arbitrary command that should be handled directly
 		if len(args) > 0 && (args[0] == "arb" || args[0] == "arbitrary" || args[0] == "exec" || args[0] == "run") {
 			// Handle arbitrary commands directly in the target directory
@@ -125,17 +125,17 @@ func runBatchMode(refresh bool, skipPackCheck bool, args []string) error {
 				errors = append(errors, errorMsg)
 				continue
 			}
-			
+
 			// Execute the arbitrary command directly in the target directory
 			err = executeArbitraryInDirectory(dir, args[1:])
 		} else {
 			// Build command arguments - prepend executable name for regular commands
 			newArgs := append([]string{selfExec}, args...)
-			
+
 			// Execute command in the pack directory
 			err = executeInDirectory(dir, newArgs)
 		}
-		
+
 		if err != nil {
 			errorMsg := fmt.Sprintf("Failed in %s: %v", dirName, err)
 			errors = append(errors, errorMsg)
@@ -145,7 +145,7 @@ func runBatchMode(refresh bool, skipPackCheck bool, args []string) error {
 			fmt.Printf("  SUCCESS: Completed in %s\n", dirName)
 		}
 
-		// Refresh if requested  
+		// Refresh if requested
 		if refresh {
 			fmt.Printf("  Refreshing %s...\n", dirName)
 			if err := executePackwizRefresh(dir); err != nil {
@@ -154,7 +154,7 @@ func runBatchMode(refresh bool, skipPackCheck bool, args []string) error {
 		}
 
 		fmt.Println()
-	}	// Summary
+	} // Summary
 	fmt.Printf("Batch operation completed:\n")
 	fmt.Printf("  Successful: %d/%d\n", successCount, len(targetDirs))
 	if len(errors) > 0 {
@@ -245,7 +245,7 @@ func executeArbitraryInDirectory(dir string, args []string) error {
 	// Find the pack directory within the target directory
 	packTomlPath := filepath.Join(dir, "pack.toml")
 	packLocation := dir
-	
+
 	// Check if pack.toml exists in the directory
 	if _, err := os.Stat(packTomlPath); err != nil {
 		// Try .minecraft subdirectory
@@ -258,15 +258,15 @@ func executeArbitraryInDirectory(dir string, args []string) error {
 		// pack.toml found in root, use that directory
 		packLocation = dir
 	}
-	
+
 	fmt.Printf("  [PackWrap] Executing arbitrary command in %s: %s\n", packLocation, strings.Join(args, " "))
-	
+
 	// Create and execute command
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Dir = packLocation
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-	
+
 	return cmd.Run()
 }

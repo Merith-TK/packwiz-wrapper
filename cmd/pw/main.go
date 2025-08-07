@@ -32,6 +32,7 @@ func main() {
 		commands.CmdImport,  // import, load
 		commands.CmdDetect,  // detect, detect-url, url
 		commands.CmdRelease, // release, changelog
+		commands.CmdChange,  // change pack info
 
 		// Batch operations
 		commands.CmdBatch,     // batch, multi
