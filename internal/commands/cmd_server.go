@@ -2,8 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -42,11 +40,11 @@ the appropriate server JAR and Java requirements.`,
 			subArgs := args[1:]
 
 			switch subcommand {
-			case "setup":
+			case "setup", "init":
 				return serverSetup(subArgs)
-			case "start":
+			case "start", "run", "up":
 				return serverStart(subArgs)
-			case "stop":
+			case "stop", "down":
 				return serverStop(subArgs)
 			case "reset":
 				return serverReset(subArgs)
@@ -63,9 +61,9 @@ the appropriate server JAR and Java requirements.`,
 // serverSetup downloads and deploys all server files
 func serverSetup(args []string) error {
 	packDir, _ := os.Getwd()
-	
+
 	// Find and parse pack.toml
-	packToml, packLocation, err := loadPackConfig(packDir)
+	packToml, packLocation, err := utils.LoadPackConfig(packDir)
 	if err != nil {
 		return fmt.Errorf("failed to load pack configuration: %w", err)
 	}
@@ -125,9 +123,9 @@ func serverStart(args []string) error {
 	}
 
 	// Load pack config for Java validation
-	packToml, _, err := loadPackConfig(packDir)
+	packToml, _, err := utils.LoadPackConfig(packDir)
 	var javaCmd = "java" // Default fallback
-	
+
 	if err != nil {
 		fmt.Printf("Warning: could not load pack config: %v\n", err)
 	} else {
@@ -163,11 +161,11 @@ func serverStop(args []string) error {
 // serverReset deletes and redeploys all server files
 func serverReset(args []string) error {
 	fmt.Println("🔄 Resetting server...")
-	
+
 	if err := serverDelete(args); err != nil {
 		return fmt.Errorf("failed to delete server files: %w", err)
 	}
-	
+
 	return serverSetup(args)
 }
 
@@ -206,14 +204,14 @@ func serverStatus(args []string) error {
 	}
 
 	// Load pack information
-	if packToml, _, err := loadPackConfig(packDir); err == nil {
+	if packToml, _, err := utils.LoadPackConfig(packDir); err == nil {
 		mcVersion := getMinecraftVersion(packToml)
 		fmt.Printf("Minecraft Version: %s\n", mcVersion)
-		
+
 		if packToml.Versions.Fabric != "" {
 			fmt.Printf("Fabric Version: %s\n", packToml.Versions.Fabric)
 		}
-		
+
 		// Check Java compatibility
 		if java, err := utils.FindCompatibleJava(mcVersion); err == nil {
 			fmt.Printf("Java: %s (compatible)\n", java.Version)
@@ -251,26 +249,6 @@ func serverStatus(args []string) error {
 
 // Helper functions
 
-func loadPackConfig(packDir string) (*packwiz.PackToml, string, error) {
-	packLocation := utils.FindPackToml(packDir)
-	if packLocation == "" {
-		return nil, "", fmt.Errorf("pack.toml not found in current directory or parent directories")
-	}
-
-	packTomlPath := filepath.Join(packLocation, "pack.toml")
-	data, err := os.ReadFile(packTomlPath)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to read pack.toml: %w", err)
-	}
-
-	var packToml packwiz.PackToml
-	if err := toml.Unmarshal(data, &packToml); err != nil {
-		return nil, "", fmt.Errorf("failed to parse pack.toml: %w", err)
-	}
-
-	return &packToml, packLocation, nil
-}
-
 func getMinecraftVersion(packToml *packwiz.PackToml) string {
 	// Prefer versions.minecraft, fallback to mc-version
 	if packToml.Versions.Minecraft != "" {
@@ -303,7 +281,7 @@ func createServerConfig(runDir, packLocation string) error {
 
 func installMods(runDir, packLocation string) error {
 	fmt.Println("📦 Installing mods using packwiz installer...")
-	
+
 	packTomlPath := filepath.Join(packLocation, "pack.toml")
 
 	// Download packwiz installer if needed
@@ -317,7 +295,7 @@ func installMods(runDir, packLocation string) error {
 
 	// Determine which Java to use
 	javaCmd := "java" // Default fallback
-	
+
 	// Try to read pack.toml to get MC version for Java selection
 	if data, err := os.ReadFile(packTomlPath); err == nil {
 		var packToml packwiz.PackToml
@@ -346,7 +324,7 @@ func installMods(runDir, packLocation string) error {
 
 func downloadServerJar(runDir string, packToml *packwiz.PackToml, mcVersion string) error {
 	serverJarPath := filepath.Join(runDir, "server.jar")
-	
+
 	// Skip if already exists
 	if _, err := os.Stat(serverJarPath); err == nil {
 		fmt.Println("✅ Server JAR already exists")
@@ -359,37 +337,21 @@ func downloadServerJar(runDir string, packToml *packwiz.PackToml, mcVersion stri
 	if packToml.Versions.Fabric != "" {
 		return downloadFabricServer(serverJarPath, mcVersion, packToml.Versions.Fabric)
 	}
-	
+
 	// TODO: Add support for Forge, Quilt, Vanilla
 	return fmt.Errorf("unsupported server type - only Fabric is currently supported")
 }
 
 func downloadFabricServer(serverJarPath, mcVersion, fabricVersion string) error {
 	// Use Fabric API to get the appropriate server JAR
-	url := fmt.Sprintf("https://meta.fabricmc.net/v2/versions/loader/%s/%s/1.1.0/server/jar", 
+	url := fmt.Sprintf("https://meta.fabricmc.net/v2/versions/loader/%s/%s/1.1.0/server/jar",
 		mcVersion, fabricVersion)
 
 	fmt.Printf("Downloading Fabric server for MC %s with Fabric %s...\n", mcVersion, fabricVersion)
 
-	resp, err := http.Get(url)
-	if err != nil {
+	downloader := &utils.HTTPDownloader{}
+	if err := downloader.DownloadFile(url, serverJarPath); err != nil {
 		return fmt.Errorf("failed to download server JAR: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download server JAR: HTTP %d", resp.StatusCode)
-	}
-
-	file, err := os.Create(serverJarPath)
-	if err != nil {
-		return fmt.Errorf("failed to create server JAR file: %w", err)
-	}
-	defer file.Close()
-
-	_, err = io.Copy(file, resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to write server JAR: %w", err)
 	}
 
 	fmt.Println("✅ Server JAR downloaded successfully")
@@ -414,40 +376,10 @@ func verifyServerSetup(runDir string) error {
 
 func downloadPackwizInstaller(path string) error {
 	url := "https://github.com/packwiz/packwiz-installer/releases/latest/download/packwiz-installer-bootstrap.jar"
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("HTTP request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-
-	file, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
-	}
-	defer file.Close()
-
-	_, err = io.Copy(file, resp.Body)
-	return err
+	downloader := &utils.HTTPDownloader{}
+	return downloader.DownloadFile(url, path)
 }
 
 func copyFile(src, dst string) error {
-	sourceFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer sourceFile.Close()
-
-	destFile, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer destFile.Close()
-
-	_, err = io.Copy(destFile, sourceFile)
-	return err
+	return utils.CopyFile(src, dst)
 }

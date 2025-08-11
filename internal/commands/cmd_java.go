@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/BurntSushi/toml"
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 )
@@ -84,7 +83,7 @@ func javaList(args []string) error {
 		fmt.Println("No Java installations found")
 		fmt.Println("\nYou can install Java automatically with:")
 		fmt.Println("  pw java install 8   # For Minecraft ≤ 1.12.2")
-		fmt.Println("  pw java install 17  # For Minecraft 1.13-1.20.4")  
+		fmt.Println("  pw java install 17  # For Minecraft 1.13-1.20.4")
 		fmt.Println("  pw java install 21  # For Minecraft ≥ 1.20.5")
 		return nil
 	}
@@ -94,13 +93,13 @@ func javaList(args []string) error {
 		if i == 0 {
 			marker = " (default)"
 		}
-		
+
 		// Determine if this is managed or system Java
 		source := "system"
 		if isManagerJava(java.Path) {
 			source = "managed"
 		}
-		
+
 		fmt.Printf("Java %d: %s%s\n", java.Major, java.Version, marker)
 		fmt.Printf("  Path: %s\n", java.Path)
 		fmt.Printf("  Source: %s\n", source)
@@ -117,7 +116,7 @@ func javaStatus(args []string) error {
 
 	// Try to find pack.toml
 	packDir, _ := os.Getwd()
-	packToml, _, err := loadPackConfigJava(packDir)
+	packToml, _, err := utils.LoadPackConfig(packDir)
 	if err != nil {
 		fmt.Printf("❌ No pack found: %v\n", err)
 		fmt.Println("Run this command from a directory containing pack.toml")
@@ -272,7 +271,7 @@ func javaPath(args []string) error {
 	// Get managed Java directory
 	dataDir := getDataDirectory()
 	javaDir := filepath.Join(dataDir, "java", fmt.Sprintf("java-%d", majorVersion))
-	
+
 	javaExe := filepath.Join(javaDir, "bin", "java")
 	if runtime.GOOS == "windows" {
 		javaExe = filepath.Join(javaDir, "bin", "java.exe")
@@ -313,30 +312,9 @@ func getDataDirectory() string {
 			return filepath.Join(home, ".local", "share", "xyz.merith.packwrap")
 		}
 	}
-	
+
 	// Fallback to current directory
 	return filepath.Join(".", ".packwrap-data")
-}
-
-// loadPackConfigJava loads pack configuration (renamed to avoid conflicts)
-func loadPackConfigJava(packDir string) (*packwiz.PackToml, string, error) {
-	packLocation := utils.FindPackToml(packDir)
-	if packLocation == "" {
-		return nil, "", fmt.Errorf("pack.toml not found in current directory or parent directories")
-	}
-
-	packTomlPath := filepath.Join(packLocation, "pack.toml")
-	data, err := os.ReadFile(packTomlPath)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to read pack.toml: %w", err)
-	}
-
-	var packToml packwiz.PackToml
-	if err := toml.Unmarshal(data, &packToml); err != nil {
-		return nil, "", fmt.Errorf("failed to parse pack.toml: %w", err)
-	}
-
-	return &packToml, packLocation, nil
 }
 
 func getMinecraftVersionJava(packToml *packwiz.PackToml) string {
@@ -371,7 +349,7 @@ func getJavaExecutablePath(version string) (string, error) {
 	// Get managed Java directory
 	dataDir := getDataDirectory()
 	javaDir := filepath.Join(dataDir, "java", fmt.Sprintf("java-%d", majorVersion))
-	
+
 	javaExe := filepath.Join(javaDir, "bin", "java")
 	if runtime.GOOS == "windows" {
 		javaExe = filepath.Join(javaDir, "bin", "java.exe")

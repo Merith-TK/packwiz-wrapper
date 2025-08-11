@@ -43,7 +43,7 @@ func ShowCommandOutput(title, command string, args []string, workingDir string) 
 	// Run command in background and update output
 	go func() {
 		cmd := exec.Command(command, args...)
-		
+
 		// Set working directory if specified and valid
 		if workingDir != "" && workingDir != "./" && workingDir != "." {
 			// Convert to absolute path to ensure it's valid
