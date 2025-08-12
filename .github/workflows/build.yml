@@ -55,7 +55,7 @@ jobs:
           CC_FOR_WINDOWS_AMD64: x86_64-w64-mingw32-gcc
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: binaries
           path: dist/*/
