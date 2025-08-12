@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 )
 
 func CmdChange() (names []string, shortHelp, longHelp string, execute func([]string) error) {
@@ -54,7 +56,7 @@ func modify(vals map[string]string) error {
 		return fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	packLocation := findPackToml(packDir)
+	packLocation := utils.FindPackToml(packDir)
 	if packLocation == "" {
 		return fmt.Errorf("pack.toml not found")
 	}
