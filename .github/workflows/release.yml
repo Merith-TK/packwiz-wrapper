@@ -28,7 +28,7 @@ jobs:
       - name: Install cross-compilation tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-mingw-w64-x86-64 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf
+          sudo apt-get install -y gcc-mingw-w64-x86-64 gcc-aarch64-linux-gnu
           
       # Install GUI development libraries for Fyne
       - name: Install GUI development libraries
@@ -45,4 +45,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CC_FOR_WINDOWS_AMD64: x86_64-w64-mingw32-gcc
           CC_FOR_LINUX_ARM64: aarch64-linux-gnu-gcc
-          CC_FOR_LINUX_ARM: arm-linux-gnueabihf-gcc

@@ -21,19 +21,10 @@ builds:
     goarch:
       - amd64
       - arm64
-      - arm
-    goarm:
-      - "7"
     env:
       - CGO_ENABLED=1
-    ignore:
-      # Skip 32-bit builds for GUI (Fyne works better on 64-bit)
-      - goos: windows
-        goarch: "386"
-      - goos: linux
-        goarch: "386"
 
-  # Headless version (multi-platform, no macOS official support)  
+  # Headless version (Windows and Linux only)  
   - id: "headless"
     main: "./cmd/pw"
     binary: "pw-cli"
@@ -42,15 +33,9 @@ builds:
     goos:
       - linux
       - windows
-      - freebsd
     goarch:
       - amd64
       - arm64
-      - arm
-      - "386"
-    goarm:
-      - "6"
-      - "7"
     env:
       - CGO_ENABLED=0
 
