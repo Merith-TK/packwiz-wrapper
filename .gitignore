@@ -1,5 +1,4 @@
 # Build artifacts
-build/
 vendor/
 dist/
 *.exe

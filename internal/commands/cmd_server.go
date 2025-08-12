@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	"github.com/Merith-TK/packwiz-wrapper/internal/build"
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 )
@@ -288,7 +289,7 @@ func installMods(runDir, packLocation string) error {
 	installerPath := filepath.Join(packLocation, "packwiz-installer-bootstrap.jar")
 	if _, err := os.Stat(installerPath); os.IsNotExist(err) {
 		fmt.Println("⬇️  Downloading packwiz installer...")
-		if err := downloadPackwizInstaller(installerPath); err != nil {
+		if err := build.DownloadPackwizInstaller(installerPath); err != nil {
 			return fmt.Errorf("failed to download packwiz installer: %w", err)
 		}
 	}
@@ -372,12 +373,6 @@ func verifyServerSetup(runDir string) error {
 	}
 
 	return nil
-}
-
-func downloadPackwizInstaller(path string) error {
-	url := "https://github.com/packwiz/packwiz-installer/releases/latest/download/packwiz-installer-bootstrap.jar"
-	downloader := &utils.HTTPDownloader{}
-	return downloader.DownloadFile(url, path)
 }
 
 func copyFile(src, dst string) error {

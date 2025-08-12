@@ -87,7 +87,7 @@ func main() {
 			break
 		}
 	}
-	
+
 	var packLocation string
 	if needsPack {
 		wd, err := os.Getwd()
