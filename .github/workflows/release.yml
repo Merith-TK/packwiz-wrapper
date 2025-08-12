@@ -29,6 +29,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-mingw-w64-x86-64 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf
+          
+      # Install GUI development libraries for Fyne
+      - name: Install GUI development libraries
+        run: |
+          sudo apt-get install -y libgl1-mesa-dev xorg-dev libxkbcommon-dev
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5

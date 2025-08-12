@@ -43,7 +43,11 @@ jobs:
       - name: Install cross-compilation tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-mingw-w64-x86-64
+          sudo apt-get install -y gcc-mingw-w64-x86-64 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf
+          
+      - name: Install GUI development libraries
+        run: |
+          sudo apt-get install -y libgl1-mesa-dev xorg-dev libxkbcommon-dev
 
       - name: Run GoReleaser Snapshot
         uses: goreleaser/goreleaser-action@v5
@@ -53,6 +57,8 @@ jobs:
           args: build --snapshot --clean
         env:
           CC_FOR_WINDOWS_AMD64: x86_64-w64-mingw32-gcc
+          CC_FOR_LINUX_ARM64: aarch64-linux-gnu-gcc
+          CC_FOR_LINUX_ARM: arm-linux-gnueabihf-gcc
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
