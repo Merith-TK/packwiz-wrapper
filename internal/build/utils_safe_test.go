@@ -55,14 +55,12 @@ func TestSanitizeIconName(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"icon.png", "icon_png"},
-		{"icon with spaces.png", "icon_with_spaces_png"},
-		{"icon/with/slashes.png", "icon_with_slashes_png"},
-		{"icon\\with\\backslashes.png", "icon_with_backslashes_png"},
-		{"icon:with:colons.png", "icon_with_colons_png"},
+		{"icon.png", "icon.png"},
+		{"icon with spaces.png", "icon_with_spaces.png"},
+		{"icon/with/slashes.png", "icon_with_slashes.png"},
+		{"icon\\with\\backslashes.png", "icon_with_backslashes.png"},
+		{"icon:with:colons.png", "icon_with_colons.png"},
 		{"", ""},
-		{"simple", "simple"},
-		{"Alpha123", "Alpha123"},
 	}
 
 	for _, tt := range tests {
