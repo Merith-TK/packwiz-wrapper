@@ -116,7 +116,7 @@ func generateReleaseFiles() error {
 	// This would typically build all export formats
 	packDir, _ := os.Getwd()
 	packName := filepath.Base(packDir)
-	if err := executeBuildFormat("all", packDir, packName); err != nil {
+	if err := executeBuildFormat("all", packDir, packName, false); err != nil {
 		return fmt.Errorf("failed to build release files: %w", err)
 	}
 

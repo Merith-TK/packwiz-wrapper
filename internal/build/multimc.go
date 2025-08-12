@@ -25,7 +25,7 @@ type MultiMCPack struct {
 }
 
 // ExportMultiMC exports the pack as a MultiMC instance
-func ExportMultiMC(packDir, packName string) error {
+func ExportMultiMC(packDir, packName string, useLocal bool) error {
 	fmt.Println("🎮 Exporting MultiMC pack...")
 
 	// Find pack.toml location
@@ -49,7 +49,7 @@ func ExportMultiMC(packDir, packName string) error {
 	}
 
 	// Create instance.cfg
-	if err := createInstanceCfg(tempDir, packName, packLocation); err != nil {
+	if err := createInstanceCfg(tempDir, packName, packLocation, useLocal); err != nil {
 		return fmt.Errorf("failed to create instance.cfg: %w", err)
 	}
 
@@ -111,11 +111,11 @@ func readPackToml(packLocation string) (*packwiz.PackToml, error) {
 }
 
 // createInstanceCfg creates the instance.cfg file for MultiMC
-func createInstanceCfg(tempDir, packName, packLocation string) error {
+func createInstanceCfg(tempDir, packName, packLocation string, useLocal bool) error {
 	iconName := sanitizeIconName(packName)
 
 	// Get pack URL for the pre-launch command
-	packURL := getPackURL(packLocation)
+	packURL := getPackURL(packLocation, useLocal)
 
 	cfg := fmt.Sprintf(`[General]
 InstanceType=OneSix
@@ -199,9 +199,20 @@ func sanitizeIconName(packName string) string {
 }
 
 // getPackURL tries to get the pack URL, falls back to local path
-func getPackURL(packLocation string) string {
-	packTomlPath := filepath.Join(packLocation, "pack.toml")
-	return packTomlPath
+func getPackURL(packLocation string, useLocal bool) string {
+	if useLocal {
+		// Return local pack.toml path
+		return filepath.Join(packLocation, "pack.toml")
+	}
+
+	// Try to detect remote URL from git if available
+	remoteURL, err := utils.DetectRemotePackURL(packLocation)
+	if err != nil || remoteURL == "" {
+		// Fall back to local path if remote detection fails
+		return filepath.Join(packLocation, "pack.toml")
+	}
+
+	return remoteURL
 }
 
 // copyMinecraftDir copies the .minecraft directory excluding unnecessary files

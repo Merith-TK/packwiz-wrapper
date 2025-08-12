@@ -1,4 +1,6 @@
 # Build artifacts
+.build/
+.mmc-temp/
 vendor/
 dist/
 *.exe
