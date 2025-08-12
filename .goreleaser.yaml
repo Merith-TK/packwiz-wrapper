@@ -7,31 +7,41 @@ before:
     - go generate ./...
 
 builds:
-  # GUI version (Windows x64 only - CGO limitations)
+  # GUI version (Windows and Linux - CGO enabled)
   - id: "gui"
     main: "./cmd/pw"
-    binary: "pw"
+    binary: "pw-gui"
     tags:
       - gui
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
     goos:
       - windows
+      - linux
     goarch:
       - amd64
+      - arm64
+      - arm
+    goarm:
+      - "7"
     env:
       - CGO_ENABLED=1
+    ignore:
+      # Skip 32-bit builds for GUI (Fyne works better on 64-bit)
+      - goos: windows
+        goarch: "386"
+      - goos: linux
+        goarch: "386"
 
-  # Headless version (multi-platform)  
+  # Headless version (multi-platform, no macOS official support)  
   - id: "headless"
     main: "./cmd/pw"
-    binary: "pw-headless"
+    binary: "pw-cli"
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
     goos:
       - linux
       - windows
-      - darwin
       - freebsd
     goarch:
       - amd64
