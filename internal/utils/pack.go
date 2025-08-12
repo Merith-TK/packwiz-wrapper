@@ -39,19 +39,10 @@ func FindPackToml(startDir string) string {
 
 // LoadPackConfig loads pack configuration from the current directory or parent directories
 func LoadPackConfig(packDir string) (*packwiz.PackToml, string, error) {
-	// Find pack.toml in current or parent directories
-	packLocation := packDir
-	for {
-		packTomlPath := filepath.Join(packLocation, "pack.toml")
-		if _, err := os.Stat(packTomlPath); err == nil {
-			break
-		}
-
-		parent := filepath.Dir(packLocation)
-		if parent == packLocation {
-			return nil, "", fmt.Errorf("pack.toml not found in current directory or parent directories")
-		}
-		packLocation = parent
+	// Use the centralized pack.toml finding logic
+	packLocation := FindPackToml(packDir)
+	if packLocation == "" {
+		return nil, "", fmt.Errorf("pack.toml not found in current directory, .minecraft subdirectory, or parent directories")
 	}
 
 	packTomlPath := filepath.Join(packLocation, "pack.toml")

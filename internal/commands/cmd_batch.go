@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 )
 
 // CmdBatch provides batch operations across multiple pack directories
@@ -169,17 +171,7 @@ func runBatchMode(refresh bool, skipPackCheck bool, args []string) error {
 }
 
 func hasPackToml(dir string) bool {
-	// Check for pack.toml in the directory
-	if _, err := os.Stat(filepath.Join(dir, "pack.toml")); err == nil {
-		return true
-	}
-
-	// Check for pack.toml in .minecraft subdirectory
-	if _, err := os.Stat(filepath.Join(dir, ".minecraft", "pack.toml")); err == nil {
-		return true
-	}
-
-	return false
+	return utils.FindPackToml(dir) != ""
 }
 
 func executeInDirectory(dir string, args []string) error {
@@ -220,21 +212,15 @@ func executePackwizRefresh(dir string) error {
 	// The dir path includes trailing slash, so we need the directory part
 	workingDir := filepath.Dir(dir)
 
-	// Check if pack.toml exists in the directory
-	packTomlPath := filepath.Join(workingDir, "pack.toml")
-	if _, err := os.Stat(packTomlPath); err != nil {
-		// Try .minecraft subdirectory
-		packTomlPath = filepath.Join(workingDir, ".minecraft", "pack.toml")
-		if _, err := os.Stat(packTomlPath); err != nil {
-			return fmt.Errorf("pack.toml not found in %s or %s/.minecraft", workingDir, workingDir)
-		}
-		// If pack.toml is in .minecraft, run from there
-		workingDir = filepath.Join(workingDir, ".minecraft")
+	// Use centralized pack.toml detection
+	packLocation := utils.FindPackToml(workingDir)
+	if packLocation == "" {
+		return fmt.Errorf("pack.toml not found in %s or %s/.minecraft", workingDir, workingDir)
 	}
 
 	// Create packwiz refresh command
 	cmd := exec.Command("packwiz", "refresh")
-	cmd.Dir = workingDir
+	cmd.Dir = packLocation
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -242,20 +228,10 @@ func executePackwizRefresh(dir string) error {
 }
 
 func executeArbitraryInDirectory(dir string, args []string) error {
-	// Find the pack directory within the target directory
-	packTomlPath := filepath.Join(dir, "pack.toml")
-	packLocation := dir
-
-	// Check if pack.toml exists in the directory
-	if _, err := os.Stat(packTomlPath); err != nil {
-		// Try .minecraft subdirectory
-		packTomlPath = filepath.Join(dir, ".minecraft", "pack.toml")
-		if _, err := os.Stat(packTomlPath); err == nil {
-			packLocation = filepath.Join(dir, ".minecraft")
-		}
+	// Use centralized pack.toml detection
+	packLocation := utils.FindPackToml(dir)
+	if packLocation == "" {
 		// If no pack.toml found, just use the directory as-is (like original arbitrary command)
-	} else {
-		// pack.toml found in root, use that directory
 		packLocation = dir
 	}
 
