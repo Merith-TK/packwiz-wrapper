@@ -78,18 +78,30 @@ func main() {
 	}
 
 	// PASSTHROUGH: Unknown commands go to integrated packwiz
-	// But first, check if we're in a valid packwiz directory
-	wd, err := os.Getwd()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: failed to get working directory: %v\n", err)
-		os.Exit(1)
+	// But first, check if we're in a valid packwiz directory (unless it's a command that doesn't need one)
+	commandsWithoutPack := []string{"init", "help", "version", "--help", "-h", "--version", "-v"}
+	needsPack := true
+	for _, cmd := range commandsWithoutPack {
+		if commandName == cmd {
+			needsPack = false
+			break
+		}
 	}
+	
+	var packLocation string
+	if needsPack {
+		wd, err := os.Getwd()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: failed to get working directory: %v\n", err)
+			os.Exit(1)
+		}
 
-	packLocation := utils.FindPackToml(wd)
-	if packLocation == "" {
-		fmt.Fprintf(os.Stderr, "Error: pack.toml not found in current directory or parent directories\n")
-		fmt.Fprintf(os.Stderr, "Make sure you're in a packwiz project directory or one of its subdirectories\n")
-		os.Exit(1)
+		packLocation = utils.FindPackToml(wd)
+		if packLocation == "" {
+			fmt.Fprintf(os.Stderr, "Error: pack.toml not found in current directory or parent directories\n")
+			fmt.Fprintf(os.Stderr, "Make sure you're in a packwiz project directory or one of its subdirectories\n")
+			os.Exit(1)
+		}
 	}
 
 	// Save original args and replace with the command we want to execute

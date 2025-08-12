@@ -138,13 +138,8 @@ func importMods(mods []string, autoConfirm bool) error {
 			fmt.Printf("  Name: %s\n", name)
 		}
 
-		// Build packwiz command arguments
-		args := []string{"add", url}
-		if name != "" {
-			args = append(args, "--name", name)
-		}
-
-		if err := ExecuteSelfCommand(args, packLocation); err != nil {
+		// Use smart mod adding (same logic as pw mod add)
+		if err := AddModSmart(packLocation, url); err != nil {
 			errorMsg := fmt.Sprintf("Failed to import %s: %v", mod, err)
 			errors = append(errors, errorMsg)
 			fmt.Printf("  ERROR: %s\n", errorMsg)

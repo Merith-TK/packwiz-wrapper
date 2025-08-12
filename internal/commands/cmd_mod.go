@@ -63,7 +63,7 @@ Examples:
 				if len(args) < 2 {
 					return fmt.Errorf("mod add requires an identifier")
 				}
-				return addModSmart(packLocation, args[1])
+				return AddModSmart(packLocation, args[1])
 			case "remove", "rm":
 				if len(args) < 2 {
 					return fmt.Errorf("mod remove requires a mod name")
@@ -85,8 +85,8 @@ Examples:
 		}
 }
 
-// Helper functions for smart mod management
-func addModSmart(packLocation, identifier string) error {
+// AddModSmart provides smart mod adding functionality
+func AddModSmart(packLocation, identifier string) error {
 	source, slug, version := parseModIdentifier(identifier)
 
 	switch source {
