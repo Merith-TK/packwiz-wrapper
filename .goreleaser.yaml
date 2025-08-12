@@ -1,5 +1,10 @@
 # GoReleaser configuration for PackWiz Wrapper
 # Documentation: https://goreleaser.com
+#
+# Build Matrix:
+# - GUI builds: Windows/Linux amd64 only (requires CGO for Fyne, cross-compilation to ARM64 not supported)
+# - Headless builds: Windows/Linux amd64/arm64 (no CGO, full cross-compilation support)
+# Total: 6 build artifacts
 
 before:
   hooks:
@@ -7,7 +12,7 @@ before:
     - go generate ./...
 
 builds:
-  # GUI version (Windows and Linux - CGO enabled)
+  # GUI version (Windows and Linux - CGO enabled, amd64 only due to cross-compilation limitations)
   - id: "gui"
     main: "./cmd/pw"
     binary: "pw-gui"
@@ -20,7 +25,6 @@ builds:
       - linux
     goarch:
       - amd64
-      - arm64
     env:
       - CGO_ENABLED=1
 
