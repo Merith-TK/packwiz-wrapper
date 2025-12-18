@@ -17,21 +17,24 @@ func CmdModlist() (names []string, shortHelp, longHelp string, execute func([]st
 	return []string{"modlist", "list-mods", "mods"},
 		"Generate and display mod list",
 		`Usage:
-  pw modlist [raw] [versions] [print]
+  pw modlist [raw] [versions] [print] [authors]
 
 Options:
   raw                 - Output raw list (no markdown formatting)
   versions            - Include mod versions
   print               - Print to terminal only (don't save file)
+  authors             - Fetch and display mod authors (requires API calls)
 
 Examples:
-  pw modlist          - Generate modlist.md
-  pw modlist raw      - Raw output without markdown
-  pw modlist versions - Include version numbers`,
+  pw modlist               - Generate modlist.md
+  pw modlist raw           - Raw output without markdown
+  pw modlist versions      - Include version numbers
+  pw modlist authors       - Include author information`,
 		func(args []string) error {
 			rawOutput := false
 			showVersions := false
 			onlyPrint := false
+			showAuthors := false
 
 			// Parse arguments
 			for _, arg := range args {
@@ -42,28 +45,35 @@ Examples:
 					showVersions = true
 				case "print":
 					onlyPrint = true
+				case "authors":
+					showAuthors = true
 				case "help":
 					fmt.Println("Usage: pw modlist [options]")
 					fmt.Println("Options:")
 					fmt.Println("  raw      - Output raw modlist without markdown formatting")
 					fmt.Println("  versions - Show mod versions")
 					fmt.Println("  print    - Only print modlist to terminal")
+					fmt.Println("  authors  - Fetch and display mod authors (requires API calls)")
 					fmt.Println("  help     - Show this help")
 					return nil
 				}
 			}
 
-			return generateModlist(rawOutput, showVersions, onlyPrint)
+			return generateModlist(rawOutput, showVersions, onlyPrint, showAuthors)
 		}
 }
 
-func generateModlist(rawOutput bool, showVersions bool, onlyPrint bool) error {
+func generateModlist(rawOutput bool, showVersions bool, onlyPrint bool, showAuthors bool) error {
 	packDir, _ := os.Getwd()
 
 	// Find pack directory
 	packLocation := utils.FindPackToml(packDir)
 	if packLocation == "" {
 		return fmt.Errorf("pack.toml not found")
+	}
+
+	if showAuthors {
+		fmt.Println("Fetching mod author information from APIs...")
 	}
 
 	// Read index.toml
@@ -149,16 +159,43 @@ func generateModlist(rawOutput bool, showVersions bool, onlyPrint bool) error {
 		allMods := append(append(clientMods, sharedMods...), serverMods...)
 		for _, mod := range allMods {
 			modURL := getModURL(mod, showVersions)
-			fmt.Printf("%s\n%s\n\n", mod.Name, modURL)
+
+			if showAuthors {
+				// Fetch and display author information
+				author := ""
+				platform := ""
+
+				if mod.Update.Modrinth.ModID != "" {
+					info, err := utils.GetModrinthInfo(mod.Update.Modrinth.ModID)
+					if err == nil {
+						author = info.Author
+						platform = "Modrinth"
+					}
+				} else if mod.Update.Curseforge.ProjectID != 0 {
+					info, err := utils.GetCurseForgeInfo(mod.Update.Curseforge.ProjectID)
+					if err == nil {
+						author = info.Author
+						platform = "CurseForge"
+					}
+				}
+
+				if author != "" && platform != "" {
+					fmt.Printf("%s - by %s [%s]\n%s\n\n", mod.Name, author, platform, modURL)
+				} else {
+					fmt.Printf("%s\n%s\n\n", mod.Name, modURL)
+				}
+			} else {
+				fmt.Printf("%s\n%s\n\n", mod.Name, modURL)
+			}
 		}
 	} else {
 		totalMods := len(clientMods) + len(serverMods) + len(sharedMods)
 		fmt.Printf("Found %d mods (%d client, %d shared, %d server)\n",
 			totalMods, len(clientMods), len(sharedMods), len(serverMods))
 
-		writeSection("## Client Mods\n\n", clientMods, outputFile, showVersions)
-		writeSection("## Shared Mods\n\n", sharedMods, outputFile, showVersions)
-		writeSection("## Server Mods\n\n", serverMods, outputFile, showVersions)
+		writeSection("## Client Mods\n\n", clientMods, outputFile, showVersions, showAuthors)
+		writeSection("## Shared Mods\n\n", sharedMods, outputFile, showVersions, showAuthors)
+		writeSection("## Server Mods\n\n", serverMods, outputFile, showVersions, showAuthors)
 
 		if outputFile != nil {
 			fmt.Printf("Modlist written to modlist.md\n")
@@ -168,7 +205,7 @@ func generateModlist(rawOutput bool, showVersions bool, onlyPrint bool) error {
 	return nil
 }
 
-func writeSection(header string, mods []packwiz.ModToml, f *os.File, showVersions bool) {
+func writeSection(header string, mods []packwiz.ModToml, f *os.File, showVersions bool, showAuthors bool) {
 	if len(mods) == 0 {
 		return
 	}
@@ -181,7 +218,7 @@ func writeSection(header string, mods []packwiz.ModToml, f *os.File, showVersion
 
 	// Write each mod
 	for _, mod := range mods {
-		writeMod(mod, f, showVersions)
+		writeMod(mod, f, showVersions, showAuthors)
 	}
 
 	// Write newline separator
@@ -191,9 +228,37 @@ func writeSection(header string, mods []packwiz.ModToml, f *os.File, showVersion
 	}
 }
 
-func writeMod(mod packwiz.ModToml, f *os.File, showVersions bool) {
+func writeMod(mod packwiz.ModToml, f *os.File, showVersions bool, showAuthors bool) {
 	modURL := getModURL(mod, showVersions)
-	line := fmt.Sprintf("- [%s](%s)\n", mod.Name, modURL)
+
+	var line string
+	if showAuthors {
+		// Fetch author information
+		author := ""
+		platform := ""
+
+		if mod.Update.Modrinth.ModID != "" {
+			info, err := utils.GetModrinthInfo(mod.Update.Modrinth.ModID)
+			if err == nil {
+				author = info.Author
+				platform = "Modrinth"
+			}
+		} else if mod.Update.Curseforge.ProjectID != 0 {
+			info, err := utils.GetCurseForgeInfo(mod.Update.Curseforge.ProjectID)
+			if err == nil {
+				author = info.Author
+				platform = "CurseForge"
+			}
+		}
+
+		if author != "" && platform != "" {
+			line = fmt.Sprintf("- [%s](%s) - *by %s* [%s]\n", mod.Name, modURL, author, platform)
+		} else {
+			line = fmt.Sprintf("- [%s](%s)\n", mod.Name, modURL)
+		}
+	} else {
+		line = fmt.Sprintf("- [%s](%s)\n", mod.Name, modURL)
+	}
 
 	// Write to console and file
 	fmt.Print(line)

@@ -159,7 +159,7 @@ func readOrGenerateModlist(modlistPath string) ([]byte, error) {
 	}
 
 	// Generate new modlist
-	if err := generateModlist(true, true, false); err != nil {
+	if err := generateModlist(true, true, false, false); err != nil {
 		return nil, fmt.Errorf("failed to generate mod list: %w", err)
 	}
 
