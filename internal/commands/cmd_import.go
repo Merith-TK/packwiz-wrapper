@@ -73,11 +73,27 @@ func importFromFile(filename string, autoConfirm bool) error {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	var lines []string
+	var urls []string
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line != "" && !strings.HasPrefix(line, "#") {
-			lines = append(lines, line)
+
+		// Skip empty lines and comments
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Only accept valid URLs or shorthand identifiers
+		if strings.HasPrefix(line, "http://") || strings.HasPrefix(line, "https://") {
+			urls = append(urls, line)
+		} else if strings.Contains(line, ":") && !strings.Contains(line, "://") {
+			// Check for shorthand identifiers (mr:slug, cf:slug, etc.)
+			parts := strings.Split(line, ":")
+			if len(parts) >= 2 {
+				source := strings.ToLower(parts[0])
+				if source == "mr" || source == "cf" || source == "modrinth" || source == "curseforge" {
+					urls = append(urls, line)
+				}
+			}
 		}
 	}
 
@@ -85,12 +101,12 @@ func importFromFile(filename string, autoConfirm bool) error {
 		return fmt.Errorf("error reading file: %w", err)
 	}
 
-	if len(lines) == 0 {
-		fmt.Println("No mods found in import file")
+	if len(urls) == 0 {
+		fmt.Println("No valid mod identifiers found in import file")
 		return nil
 	}
 
-	return importMods(lines, autoConfirm)
+	return importMods(urls, autoConfirm)
 }
 
 func importFromStrings(urls []string, autoConfirm bool) error {
@@ -101,18 +117,16 @@ func importFromStrings(urls []string, autoConfirm bool) error {
 	return importMods(urls, autoConfirm)
 }
 
-func importMods(mods []string, autoConfirm bool) error {
+func importMods(urls []string, autoConfirm bool) error {
 	packDir, _ := os.Getwd()
-
-	// Find pack directory using our helper function
 	packLocation := utils.FindPackToml(packDir)
 	if packLocation == "" {
 		return fmt.Errorf("pack.toml not found")
 	}
 
-	fmt.Printf("Found %d mod(s) to import:\n", len(mods))
-	for i, mod := range mods {
-		fmt.Printf("  %d. %s\n", i+1, mod)
+	fmt.Printf("Found %d mod(s) to import:\n", len(urls))
+	for i, url := range urls {
+		fmt.Printf("  %d. %s\n", i+1, url)
 	}
 
 	if !autoConfirm {
@@ -128,25 +142,16 @@ func importMods(mods []string, autoConfirm bool) error {
 	fmt.Println("Starting import process...")
 	var errors []string
 
-	for i, mod := range mods {
-		fmt.Printf("\n[%d/%d] Importing: %s\n", i+1, len(mods), mod)
-
-		url, path, name := parseLine(mod, "")
-		fmt.Printf("  URL: %s\n", url)
-		if path != "" {
-			fmt.Printf("  Path: %s\n", path)
-		}
-		if name != "" {
-			fmt.Printf("  Name: %s\n", name)
-		}
+	for i, url := range urls {
+		fmt.Printf("\n[%d/%d] Importing: %s\n", i+1, len(urls), url)
 
 		// Use smart mod adding (same logic as pw mod add)
 		if err := AddModSmart(packLocation, url); err != nil {
-			errorMsg := fmt.Sprintf("Failed to import %s: %v", mod, err)
+			errorMsg := fmt.Sprintf("Failed to import %s: %v", url, err)
 			errors = append(errors, errorMsg)
 			fmt.Printf("  ERROR: %s\n", errorMsg)
 		} else {
-			fmt.Printf("  SUCCESS: Imported %s\n", mod)
+			fmt.Printf("  SUCCESS: Imported %s\n", url)
 		}
 	}
 
@@ -158,7 +163,7 @@ func importMods(mods []string, autoConfirm bool) error {
 		return fmt.Errorf("%d imports failed", len(errors))
 	}
 
-	fmt.Printf("\nSuccessfully imported all %d mod(s)!\n", len(mods))
+	fmt.Printf("\nSuccessfully imported all %d mod(s)!\n", len(urls))
 	return nil
 }
 
