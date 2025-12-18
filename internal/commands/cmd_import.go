@@ -66,6 +66,11 @@ Examples:
 func importFromFile(filename string, autoConfirm bool) error {
 	fmt.Printf("[PackWrap] Importing from file: %s\n", filename)
 
+	// Ensure file is UTF-8 encoded (convert if needed)
+	if err := utils.EnsureUTF8(filename); err != nil {
+		return fmt.Errorf("failed to normalize file encoding: %w", err)
+	}
+
 	file, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("failed to open import file: %w", err)
@@ -165,38 +170,4 @@ func importMods(urls []string, autoConfirm bool) error {
 
 	fmt.Printf("\nSuccessfully imported all %d mod(s)!\n", len(urls))
 	return nil
-}
-
-// parseLine parses a mod entry line to extract URL, path, and name
-// Returns url, path, name
-func parseLine(line string, previousLine string) (string, string, string) {
-	line = strings.TrimSpace(line)
-
-	// If line doesn't contain a space, treat the whole line as URL
-	if !strings.Contains(line, " ") {
-		return line, "", ""
-	}
-
-	// Split by space to get URL and additional info
-	parts := strings.Fields(line)
-	if len(parts) < 2 {
-		return line, "", ""
-	}
-
-	url := parts[0]
-
-	// Check if second part looks like a path (contains / or \)
-	if strings.Contains(parts[1], "/") || strings.Contains(parts[1], "\\") {
-		// Format: URL PATH [NAME...]
-		path := parts[1]
-		name := ""
-		if len(parts) > 2 {
-			name = strings.Join(parts[2:], " ")
-		}
-		return url, path, name
-	} else {
-		// Format: URL NAME
-		name := strings.Join(parts[1:], " ")
-		return url, "", name
-	}
 }

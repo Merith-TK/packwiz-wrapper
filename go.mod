@@ -1,6 +1,6 @@
 module github.com/Merith-TK/packwiz-wrapper
 
-go 1.23
+go 1.24.0
 
 toolchain go1.24.3
 
@@ -10,6 +10,8 @@ require (
 	github.com/Merith-TK/utils v0.0.0-20250710011649-922eab8d0105
 	github.com/packwiz/packwiz v0.0.0-20250119231123-241f24b550f6
 	github.com/pelletier/go-toml v1.9.5
+	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d
+	golang.org/x/text v0.32.0
 )
 
 require (
@@ -73,7 +75,6 @@ require (
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/dixonwille/wlog.v2 v2.0.0 // indirect
 	gopkg.in/dixonwille/wmenu.v4 v4.0.2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
