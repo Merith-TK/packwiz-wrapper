@@ -11,48 +11,84 @@ import (
 func CmdRelease() (names []string, shortHelp, longHelp string, execute func([]string) error) {
 	return []string{"release", "changelog"},
 		"Generate release files and changelogs",
-		`Release Commands:
-  pw release              - Generate complete release package
-  pw release changelog    - Generate changelog only
-  pw release files        - Generate release files only
+		`Usage:
+  pw release [changelog|files|<format>...]
+
+Options:
+  (none)              - Generate changelog + all formats
+  changelog           - Generate changelog only
+  files               - Generate all formats (no changelog)
+  <format>...         - Generate changelog + specific format(s)
+
+Formats: cf, mr, mmc, technic, server, all
 
 Examples:
-  pw release              - Full release generation
-  pw release changelog    - Just create changelog
-  pw changelog            - Same as release changelog (alias)`,
-		func(args []string) error {
-			action := "full"
-			if len(args) > 0 {
-				action = args[0]
-			}
-
-			switch action {
-			case "changelog":
-				return generateChangelog()
-			case "files":
-				return generateReleaseFiles()
-			case "full":
-				fallthrough
-			default:
-				// Generate both changelog and release files
-				if err := generateChangelog(); err != nil {
-					return fmt.Errorf("failed to generate changelog: %w", err)
-				}
-				return generateReleaseFiles()
-			}
-		}
+  pw release          - Full release
+  pw release mmc      - Changelog + MultiMC
+  pw release cf mr    - Changelog + CurseForge + Modrinth`,
+		executeRelease
 }
 
+// executeRelease handles the main release command logic
+func executeRelease(args []string) error {
+	// No arguments = full release (changelog + all formats)
+	if len(args) == 0 {
+		return fullRelease()
+	}
+
+	// Handle special commands
+	switch args[0] {
+	case "changelog":
+		return changelogOnly()
+	case "files":
+		return filesOnly()
+	default:
+		return releaseWithFormats(args)
+	}
+}
+
+// fullRelease generates changelog and all export formats
+func fullRelease() error {
+	if err := generateChangelog(); err != nil {
+		return fmt.Errorf("failed to generate changelog: %w", err)
+	}
+	return generateReleaseFiles("all")
+}
+
+// changelogOnly generates only the changelog
+func changelogOnly() error {
+	return generateChangelog()
+}
+
+// filesOnly generates all export formats without changelog
+func filesOnly() error {
+	return generateReleaseFiles("all")
+}
+
+// releaseWithFormats generates changelog and specified formats
+func releaseWithFormats(formats []string) error {
+	if err := generateChangelog(); err != nil {
+		return fmt.Errorf("failed to generate changelog: %w", err)
+	}
+
+	for _, format := range formats {
+		if err := generateReleaseFiles(format); err != nil {
+			return fmt.Errorf("failed to build %s: %w", format, err)
+		}
+	}
+	return nil
+}
+
+// generateChangelog creates a changelog file with git log and mod list
 func generateChangelog() error {
 	packDir, _ := os.Getwd()
 	buildDir := filepath.Join(packDir, ".build")
+	changelogPath := filepath.Join(buildDir, "CHANGELOG.md")
 
 	// Ensure .build directory exists
 	if err := os.MkdirAll(buildDir, 0755); err != nil {
 		return fmt.Errorf("failed to create .build directory: %w", err)
 	}
-
-	changelogPath := filepath.Join(buildDir, "CHANGELOG.md")
 
 	fmt.Println("Generating changelog...")
 
@@ -63,61 +99,94 @@ func generateChangelog() error {
 	}
 	defer file.Close()
 
-	// Generate git log
-	fmt.Println("Generating git log...")
-	cmd := exec.Command("git", "log", "--pretty=format:%h - %s (%ci)", "--abbrev-commit")
-	cmd.Dir = packDir
-	output, err := cmd.Output()
-	if err != nil {
-		fmt.Printf("Warning: failed to generate git log: %v\n", err)
-		file.WriteString("# Changelog\n\nGit log not available.\n\n")
-	} else {
-		file.WriteString("# Changelog\n\n")
-		file.Write(output)
-		file.WriteString("\n\n")
+	// Write git log section
+	if err := writeGitLog(file, packDir); err != nil {
+		fmt.Printf("Warning: %v\n", err)
 	}
 
-	// Add mod list if available
-	modlistPath := filepath.Join(packDir, "modlist.md")
-	if _, err := os.Stat(modlistPath); err == nil {
-		fmt.Println("Adding mod list to changelog...")
-		file.WriteString("<details><summary>Mod List</summary>\n\n")
-
-		modlistContent, err := os.ReadFile(modlistPath)
-		if err != nil {
-			fmt.Printf("Warning: failed to read modlist.md: %v\n", err)
-		} else {
-			file.Write(modlistContent)
-		}
-
-		file.WriteString("</details>\n")
-	} else {
-		// Generate mod list on the fly
-		fmt.Println("Generating mod list for changelog...")
-		if err := generateModlist(true, true, false); err != nil {
-			fmt.Printf("Warning: failed to generate mod list: %v\n", err)
-		} else {
-			// Try to read the generated modlist
-			if modlistContent, err := os.ReadFile(modlistPath); err == nil {
-				file.WriteString("<details><summary>Mod List</summary>\n\n")
-				file.Write(modlistContent)
-				file.WriteString("</details>\n")
-			}
-		}
+	// Write mod list section
+	if err := writeModList(file, packDir); err != nil {
+		fmt.Printf("Warning: %v\n", err)
 	}
 
 	fmt.Printf("Changelog generated: %s\n", changelogPath)
 	return nil
 }
 
-func generateReleaseFiles() error {
-	fmt.Println("Generating release files...")
+// writeGitLog writes the git log section to the changelog
+func writeGitLog(file *os.File, packDir string) error {
+	fmt.Println("Generating git log...")
 
-	// This would typically build all export formats
+	cmd := exec.Command("git", "log", "--pretty=format:%h - %s (%ci)", "--abbrev-commit")
+	cmd.Dir = packDir
+	output, err := cmd.Output()
+
+	if err != nil {
+		file.WriteString("# Changelog\n\nGit log not available.\n\n")
+		return fmt.Errorf("failed to generate git log: %w", err)
+	}
+
+	file.WriteString("# Changelog\n\n")
+	file.Write(output)
+	file.WriteString("\n\n")
+	return nil
+}
+
+// writeModList writes the mod list section to the changelog
+func writeModList(file *os.File, packDir string) error {
+	fmt.Println("Adding mod list to changelog...")
+
+	modlistPath := filepath.Join(packDir, "modlist.md")
+
+	// Try to read existing modlist, generate if needed
+	modlistContent, err := readOrGenerateModlist(modlistPath)
+	if err != nil {
+		return fmt.Errorf("failed to get mod list: %w", err)
+	}
+
+	// Write mod list in collapsible section
+	file.WriteString("<details><summary>Mod List</summary>\n\n")
+	file.Write(modlistContent)
+	file.WriteString("</details>\n")
+	return nil
+}
+
+// readOrGenerateModlist reads existing modlist or generates a new one
+func readOrGenerateModlist(modlistPath string) ([]byte, error) {
+	// Try to read existing modlist
+	if content, err := os.ReadFile(modlistPath); err == nil {
+		return content, nil
+	}
+
+	// Generate new modlist
+	if err := generateModlist(true, true, false); err != nil {
+		return nil, fmt.Errorf("failed to generate mod list: %w", err)
+	}
+
+	// Read the newly generated modlist
+	content, err := os.ReadFile(modlistPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read generated modlist: %w", err)
+	}
+	return content, nil
+}
+
+func generateReleaseFiles(formats ...string) error {
 	packDir, _ := os.Getwd()
 	packName := filepath.Base(packDir)
-	if err := executeBuildFormat("all", packDir, packName, false); err != nil {
-		return fmt.Errorf("failed to build release files: %w", err)
+
+	// If no formats specified, default to "all"
+	if len(formats) == 0 {
+		formats = []string{"all"}
+	}
+
+	fmt.Println("Generating release files...")
+
+	// Build each specified format
+	for _, format := range formats {
+		if err := executeBuildFormat(format, packDir, packName, false); err != nil {
+			return fmt.Errorf("failed to build %s: %w", format, err)
+		}
 	}
 
 	fmt.Println("Release files generated in .build directory")

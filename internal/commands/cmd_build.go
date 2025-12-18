@@ -13,27 +13,19 @@ import (
 func CmdBuild() (names []string, shortHelp, longHelp string, execute func([]string) error) {
 	return []string{"build", "export"},
 		"Export pack to various formats (CurseForge, Modrinth, MultiMC, etc.)",
-		`Build Commands:
-  pw build curseforge|cf  - Export CurseForge pack
-  pw build modrinth|mr    - Export Modrinth pack
-  pw build multimc|mmc    - Export MultiMC pack
-  pw build technic        - Export Technic pack
-  pw build server         - Export server pack
-  pw build all            - Export all supported formats
+		`Usage:
+  pw build <format> [options]
 
-MultiMC Options:
-  pw build mmc --local    - Use local pack.toml path (default: remote URL)
-  pw build mmc -l         - Short form for --local
+Formats: cf, mr, mmc, technic, server, all
 
-Output Options:
-  pw build <format> -o <file>  - Specify output filename
+Options:
+  --local, -l         - Use local path for MultiMC (default: remote URL)
+  -o <file>           - Specify output filename
 
 Examples:
-  pw build cf             - Quick CurseForge export
-  pw export modrinth      - Export to Modrinth (using alias)
-  pw build mmc            - Export MultiMC with remote URL (default)
-  pw build mmc --local    - Export MultiMC with local path
-  pw build all            - Export everything`,
+  pw build cf         - Export CurseForge
+  pw build mmc -l     - Export MultiMC with local path
+  pw build all        - Export all formats`,
 		func(args []string) error {
 			if len(args) == 0 {
 				fmt.Println("Please specify a build target: cf, mr, mmc, technic, server, all")
@@ -99,16 +91,29 @@ Examples:
 
 func executeBuildFormat(format, packDir, packName string, useLocal bool) error {
 	switch format {
-	case "curseforge":
+	case "curseforge", "cf":
 		return build.ExportCurseForge(packDir, packName)
-	case "modrinth":
+	case "modrinth", "mr":
 		return build.ExportModrinth(packDir, packName)
-	case "multimc":
+	case "multimc", "mmc":
 		return build.ExportMultiMC(packDir, packName, useLocal)
 	case "technic":
 		return build.ExportTechnic(packDir, packName)
 	case "server":
 		return build.ExportServer(packDir, packName)
+	case "all":
+		// Export all formats
+		fmt.Println("Exporting all formats...")
+		formats := []string{"curseforge", "modrinth", "multimc", "technic", "server"}
+		var lastErr error
+		for _, exportFormat := range formats {
+			fmt.Printf("\n=== Exporting %s ===\n", exportFormat)
+			if err := executeBuildFormat(exportFormat, packDir, packName, useLocal); err != nil {
+				fmt.Printf("Warning: Failed to export %s: %v\n", exportFormat, err)
+				lastErr = err
+			}
+		}
+		return lastErr // Return last error, or nil if all succeeded
 	default:
 		return fmt.Errorf("unknown format: %s", format)
 	}

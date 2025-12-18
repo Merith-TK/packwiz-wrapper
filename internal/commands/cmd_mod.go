@@ -12,22 +12,21 @@ import (
 func CmdMod() (names []string, shortHelp, longHelp string, execute func([]string) error) {
 	return []string{"mod", "m"},
 		"Enhanced mod management with smart URL parsing",
-		`Smart Mod Command:
-  pw mod add <url|mr:slug:version>     - Add mod with smart URL detection
-  pw mod remove <name>                 - Remove mod
-  pw mod update [name]                 - Update mod(s)
-  pw mod list                          - List installed mods
+		`Usage:
+  pw mod add <identifier>    - Add mod (URL or mr:slug:version)
+  pw mod remove <name>       - Remove mod
+  pw mod update [name]       - Update mod(s)
+  pw mod list                - List mods
 
-Smart URL Support:
-  - mr:cc-tweaked:Zoo9N9Dv            - Modrinth slug + version
-  - Full URLs (Modrinth/CurseForge)   - Auto-detected
-  - Traditional packwiz syntax        - Passed through
+Smart identifiers:
+  mr:slug:version            - Modrinth slug + version ID
+  https://modrinth.com/...   - Direct URL (auto-detected)
+  https://curseforge.com/... - Direct URL (auto-detected)
 
 Examples:
-  pw mod add mr:cc-tweaked:Zoo9N9Dv
-  pw mod add https://modrinth.com/mod/cc-tweaked
-  pw mod remove cc-tweaked
-  pw m list`,
+  pw mod add mr:sodium:mc1.21.8-0.6.13
+  pw mod add https://modrinth.com/mod/sodium
+  pw mod remove sodium`,
 		func(args []string) error {
 			packDir, _ := os.Getwd()
 

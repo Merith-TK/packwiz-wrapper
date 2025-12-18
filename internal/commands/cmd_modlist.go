@@ -16,18 +16,18 @@ import (
 func CmdModlist() (names []string, shortHelp, longHelp string, execute func([]string) error) {
 	return []string{"modlist", "list-mods", "mods"},
 		"Generate and display mod list",
-		`Modlist Commands:
-  pw modlist              - Generate modlist.md file
-  pw modlist raw          - Output raw mod list (no markdown)
-  pw modlist versions     - Include mod versions in output
-  pw modlist print        - Only prints to terminal, does not save to a file
-  pw modlist help         - Show this help
+		`Usage:
+  pw modlist [raw] [versions] [print]
+
+Options:
+  raw                 - Output raw list (no markdown formatting)
+  versions            - Include mod versions
+  print               - Print to terminal only (don't save file)
 
 Examples:
-  pw modlist              - Generate formatted modlist.md
-  pw modlist raw          - Show raw mod names only
-  pw modlist versions     - Generate modlist with version info
-  pw modlist print        - Only print modlist to terminal`,
+  pw modlist          - Generate modlist.md
+  pw modlist raw      - Raw output without markdown
+  pw modlist versions - Include version numbers`,
 		func(args []string) error {
 			rawOutput := false
 			showVersions := false

@@ -13,16 +13,18 @@ import (
 func CmdImport() (names []string, shortHelp, longHelp string, execute func([]string) error) {
 	return []string{"import", "load"},
 		"Import mods from file or URL list",
-		`Import Commands:
-  pw import -i <file>      - Import mods from file (default: import.txt)
-  pw import -y             - Auto-confirm imports
-  pw import -i file.txt -y - Import from file with auto-confirm
-  pw import <url1> <url2>  - Import mods from URLs directly
+		`Usage:
+  pw import [-i <file>] [-y] [<url>...]
+
+Options:
+  -i <file>           - Import from file (default: import.txt)
+  -y                  - Auto-confirm all imports
+  <url>...            - Import mods from URLs directly
 
 Examples:
-  pw import -i import.txt  - Import from import.txt file
-  pw import -y             - Import from default file with auto-confirm
-  pw import <mod-url>      - Import single mod from URL`,
+  pw import           - Import from import.txt
+  pw import -y        - Import with auto-confirm
+  pw import <url>     - Import single mod`,
 		func(args []string) error {
 			autoConfirm := false
 			importFile := false

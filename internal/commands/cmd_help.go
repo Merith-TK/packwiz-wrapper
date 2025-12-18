@@ -2,6 +2,9 @@ package commands
 
 import "fmt"
 
+// GlobalRegistry is set by main.go so help command can access other commands
+var GlobalRegistry *CommandRegistry
+
 // CmdHelp provides help information
 func CmdHelp() (names []string, shortHelp, longHelp string, execute func([]string) error) {
 	return []string{"help", "h", "--help"},
@@ -15,8 +18,23 @@ func CmdHelp() (names []string, shortHelp, longHelp string, execute func([]strin
 				fmt.Println("Use 'pw' to see main help or 'pw help <command>' for specific help")
 				return nil
 			}
-			fmt.Printf("Help for command: %s\n", args[0])
-			fmt.Println("(Command-specific help would go here)")
+
+			// Look up the command in the registry
+			if GlobalRegistry == nil {
+				fmt.Printf("Help for command: %s\n", args[0])
+				fmt.Println("(Registry not available)")
+				return nil
+			}
+
+			cmd, found := GlobalRegistry.Get(args[0])
+			if !found {
+				fmt.Printf("Unknown command: %s\n", args[0])
+				fmt.Println("Use 'pw help' to see available commands")
+				return nil
+			}
+
+			// Display the command's long help
+			fmt.Println(cmd.LongHelp())
 			return nil
 		}
 }

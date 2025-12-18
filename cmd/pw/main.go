@@ -26,6 +26,9 @@ func main() {
 	// Create command registry with minimal setup
 	registry := commands.NewCommandRegistry()
 
+	// Make registry available to help command
+	commands.GlobalRegistry = registry
+
 	// ULTRA-SIMPLE REGISTRATION: All function-based commands!
 	registry.RegisterAll(
 		// Core commands
