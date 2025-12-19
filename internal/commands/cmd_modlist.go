@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
+	"github.com/Merith-TK/packwiz-wrapper/internal/modformat"
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 	"github.com/pelletier/go-toml"
@@ -64,41 +64,38 @@ Examples:
 				}
 			}
 
-			return generateModlist(rawOutput, showVersions, onlyPrint, showAuthors, showPlatform)
+			opts := modformat.ModlistOptions{
+				ShowVersions: showVersions,
+				ShowAuthors:  showAuthors,
+				ShowPlatform: showPlatform,
+				RawOutput:    rawOutput,
+				OnlyPrint:    onlyPrint,
+			}
+			return generateModlist(opts)
 		}
 }
 
-func generateModlist(rawOutput bool, showVersions bool, onlyPrint bool, showAuthors bool, showPlatform bool) error {
-	packDir, _ := os.Getwd()
-
-	// Find pack directory
-	packLocation := utils.FindPackToml(packDir)
-	if packLocation == "" {
-		return fmt.Errorf("pack.toml not found")
-	}
-
-	if showAuthors {
-		fmt.Println("Fetching mod author information from APIs...")
-	}
-
-	// Read index.toml
-	indexFile := filepath.Join(packLocation, "index.toml")
-	indexFileHandler, err := os.Open(indexFile)
+func generateModlist(opts modformat.ModlistOptions) error {
+	clientMods, sharedMods, serverMods, err := getCategorizedMods()
 	if err != nil {
-		return fmt.Errorf("failed to open index.toml: %w", err)
+		return err
 	}
-	defer indexFileHandler.Close()
 
-	var index packwiz.IndexToml
-	if err := toml.NewDecoder(indexFileHandler).Decode(&index); err != nil {
-		return fmt.Errorf("failed to decode index.toml: %w", err)
+	// Pre-fetch all author information if needed (batch API calls)
+	var authorCache map[int]modformat.ModAuthorInfo
+	if opts.ShowAuthors {
+		fmt.Println("Fetching mod author information from APIs...")
+		allMods := append(append(clientMods, sharedMods...), serverMods...)
+		authorCache = modformat.FetchModAuthors(allMods)
+		fmt.Printf("Fetched author info for %d mods\n", len(authorCache))
 	}
 
 	// Prepare output file (only if not raw output or print only)
 	var outputFile *os.File
+	packDir, _ := os.Getwd()
 	outputPath := filepath.Join(packDir, "modlist.md")
 
-	if (!rawOutput) && (!onlyPrint) {
+	if (!opts.RawOutput) && (!opts.OnlyPrint) {
 		os.Remove(outputPath) // Remove existing file
 		outputFile, err = os.OpenFile(outputPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
@@ -112,6 +109,135 @@ func generateModlist(rawOutput bool, showVersions bool, onlyPrint bool, showAuth
 		}
 	}
 
+	// Write sections in order: Client, Shared, Server
+	if opts.RawOutput {
+		// For raw output, just print all mods with their URLs
+		allMods := append(append(clientMods, sharedMods...), serverMods...)
+		for i, mod := range allMods {
+			modURL := modformat.GetModURL(mod, opts.ShowVersions)
+
+			// Determine platform from TOML structure
+			platform := modformat.GetPlatform(mod)
+
+			if opts.ShowAuthors || opts.ShowPlatform {
+				// Build output based on flags
+				output := mod.Name
+
+				if opts.ShowAuthors {
+					// Use cached author info if available
+					if authorInfo, ok := authorCache[i]; ok {
+						output += " - by " + authorInfo.Author
+					}
+				}
+
+				if opts.ShowPlatform && platform != "" {
+					output += " [" + platform + "]"
+				}
+
+				fmt.Printf("%s\n%s\n\n", output, modURL)
+			} else {
+				fmt.Printf("%s\n%s\n\n", mod.Name, modURL)
+			}
+		}
+	} else {
+		totalMods := len(clientMods) + len(serverMods) + len(sharedMods)
+		fmt.Printf("Found %d mods (%d client, %d shared, %d server)\n",
+			totalMods, len(clientMods), len(sharedMods), len(serverMods))
+
+		writeSection("## Client Mods\n\n", clientMods, outputFile, opts, authorCache, 0)
+		writeSection("## Shared Mods\n\n", sharedMods, outputFile, opts, authorCache, len(clientMods))
+		writeSection("## Server Mods\n\n", serverMods, outputFile, opts, authorCache, len(clientMods)+len(sharedMods))
+
+		if outputFile != nil {
+			fmt.Printf("Modlist written to modlist.md\n")
+		}
+	}
+
+	return nil
+}
+
+func writeSection(header string, mods []packwiz.ModToml, f *os.File, opts modformat.ModlistOptions, authorCache map[int]modformat.ModAuthorInfo, offset int) {
+	if len(mods) == 0 {
+		return
+	}
+
+	// Write header to console and file
+	fmt.Print(header)
+	if f != nil {
+		f.WriteString(header)
+	}
+
+	// Write each mod
+	for i, mod := range mods {
+		// Get author from cache if available, otherwise empty string
+		author := ""
+		if opts.ShowAuthors && authorCache != nil {
+			if authorInfo, ok := authorCache[offset+i]; ok {
+				author = authorInfo.Author
+			}
+		}
+
+		line := modformat.FormatModLine(mod, opts, author)
+
+		fmt.Print(line)
+		if f != nil {
+			f.WriteString(line)
+		}
+	}
+
+	// Write newline separator
+	fmt.Println()
+	if f != nil {
+		f.WriteString("\n")
+	}
+}
+
+// generateModlistContent generates modlist content as a string without console output or file writing
+func generateModlistContent(opts modformat.ModlistOptions) (string, error) {
+	clientMods, sharedMods, serverMods, err := getCategorizedMods()
+	if err != nil {
+		return "", err
+	}
+
+	// Generate markdown content
+	var content strings.Builder
+
+	// Write sections in order: Client, Shared, Server
+	content.WriteString("## Client Mods\n\n")
+	writeModSectionToBuffer(&content, clientMods, opts)
+
+	content.WriteString("## Shared Mods\n\n")
+	writeModSectionToBuffer(&content, sharedMods, opts)
+
+	content.WriteString("## Server Mods\n\n")
+	writeModSectionToBuffer(&content, serverMods, opts)
+
+	return content.String(), nil
+}
+
+// getCategorizedMods processes mod files and returns them categorized by side
+func getCategorizedMods() ([]packwiz.ModToml, []packwiz.ModToml, []packwiz.ModToml, error) {
+	packDir, _ := os.Getwd()
+
+	// Find pack directory
+	packLocation := utils.FindPackToml(packDir)
+	if packLocation == "" {
+		return nil, nil, nil, fmt.Errorf("pack.toml not found")
+	}
+
+	// Read index.toml
+	indexFile := filepath.Join(packLocation, "index.toml")
+	indexFileHandler, err := os.Open(indexFile)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to open index.toml: %w", err)
+	}
+	defer indexFileHandler.Close()
+
+	var index packwiz.IndexToml
+	if err := toml.NewDecoder(indexFileHandler).Decode(&index); err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to decode index.toml: %w", err)
+	}
+
 	// Process mod files
 	var modlist []packwiz.ModToml
 	for _, file := range index.Files {
@@ -122,20 +248,17 @@ func generateModlist(rawOutput bool, showVersions bool, onlyPrint bool, showAuth
 		modFilePath := filepath.Join(packLocation, file.File)
 		modFile, err := os.Open(modFilePath)
 		if err != nil {
-			fmt.Printf("Warning: failed to open %s: %v\n", file.File, err)
 			continue
 		}
 
 		var mod packwiz.ModToml
 		if err := toml.NewDecoder(modFile).Decode(&mod); err != nil {
-			fmt.Printf("Warning: failed to decode %s: %v\n", file.File, err)
 			modFile.Close()
 			continue
 		}
 		modFile.Close()
 
 		// Set mod.Parse.ModID to the last part of the path without the .pw.toml extension
-		// This is needed for CurseForge URLs
 		modID := strings.TrimSuffix(filepath.Base(modFilePath), ".pw.toml")
 		mod.Parse.ModID = modID
 
@@ -158,166 +281,28 @@ func generateModlist(rawOutput bool, showVersions bool, onlyPrint bool, showAuth
 		}
 	}
 
-	// Write sections in order: Client, Shared, Server
-	if rawOutput {
-		// For raw output, just print all mods with their URLs
-		allMods := append(append(clientMods, sharedMods...), serverMods...)
-		for _, mod := range allMods {
-			modURL := getModURL(mod, showVersions)
-
-			// Determine platform from TOML structure
-			platform := getPlatform(mod)
-
-			if showAuthors || showPlatform {
-				// Build output based on flags
-				output := mod.Name
-
-				if showAuthors {
-					// Fetch author information only if needed
-					author := ""
-					if platform == "Modrinth" {
-						info, err := utils.GetModrinthInfo(mod.Update.Modrinth.ModID)
-						if err == nil {
-							author = info.Author
-						}
-					} else if platform == "CurseForge" {
-						info, err := utils.GetCurseForgeInfo(mod.Update.Curseforge.ProjectID)
-						if err == nil {
-							author = info.Author
-						}
-					}
-					if author != "" {
-						output += " - by " + author
-					}
-				}
-
-				if showPlatform && platform != "" {
-					output += " [" + platform + "]"
-				}
-
-				fmt.Printf("%s\n%s\n\n", output, modURL)
-			} else {
-				fmt.Printf("%s\n%s\n\n", mod.Name, modURL)
-			}
-		}
-	} else {
-		totalMods := len(clientMods) + len(serverMods) + len(sharedMods)
-		fmt.Printf("Found %d mods (%d client, %d shared, %d server)\n",
-			totalMods, len(clientMods), len(sharedMods), len(serverMods))
-
-		writeSection("## Client Mods\n\n", clientMods, outputFile, showVersions, showAuthors, showPlatform)
-		writeSection("## Shared Mods\n\n", sharedMods, outputFile, showVersions, showAuthors, showPlatform)
-		writeSection("## Server Mods\n\n", serverMods, outputFile, showVersions, showAuthors, showPlatform)
-
-		if outputFile != nil {
-			fmt.Printf("Modlist written to modlist.md\n")
-		}
-	}
-
-	return nil
+	return clientMods, sharedMods, serverMods, nil
 }
 
-func writeSection(header string, mods []packwiz.ModToml, f *os.File, showVersions bool, showAuthors bool, showPlatform bool) {
+// writeModSectionToBuffer writes a mod section to a string buffer
+func writeModSectionToBuffer(buf *strings.Builder, mods []packwiz.ModToml, opts modformat.ModlistOptions) {
 	if len(mods) == 0 {
 		return
 	}
 
-	// Write header to console and file
-	fmt.Print(header)
-	if f != nil {
-		f.WriteString(header)
-	}
-
 	// Write each mod
 	for _, mod := range mods {
-		writeMod(mod, f, showVersions, showAuthors, showPlatform)
+		// Get author if needed (will be fetched on demand)
+		author := ""
+		if opts.ShowAuthors {
+			platform := modformat.GetPlatform(mod)
+			author = modformat.GetModAuthor(mod, platform)
+		}
+
+		line := modformat.FormatModLine(mod, opts, author)
+		buf.WriteString(line)
 	}
 
 	// Write newline separator
-	fmt.Println()
-	if f != nil {
-		f.WriteString("\n")
-	}
-}
-
-func writeMod(mod packwiz.ModToml, f *os.File, showVersions bool, showAuthors bool, showPlatform bool) {
-	modURL := getModURL(mod, showVersions)
-
-	var line string
-	if showAuthors || showPlatform {
-		// Determine platform from TOML structure
-		platform := getPlatform(mod)
-
-		// Build line based on flags
-		line = fmt.Sprintf("- [%s](%s)", mod.Name, modURL)
-
-		if showAuthors {
-			// Fetch author information only if needed
-			author := ""
-			if platform == "Modrinth" {
-				info, err := utils.GetModrinthInfo(mod.Update.Modrinth.ModID)
-				if err == nil {
-					author = info.Author
-				}
-			} else if platform == "CurseForge" {
-				info, err := utils.GetCurseForgeInfo(mod.Update.Curseforge.ProjectID)
-				if err == nil {
-					author = info.Author
-				}
-			}
-			if author != "" {
-				line += fmt.Sprintf(" - *by %s*", author)
-			}
-		}
-
-		if showPlatform && platform != "" {
-			line += fmt.Sprintf(" [%s]", platform)
-		}
-		line += "\n"
-	} else {
-		line = fmt.Sprintf("- [%s](%s)\n", mod.Name, modURL)
-	}
-
-	// Write to console and file
-	fmt.Print(line)
-	if f != nil {
-		f.WriteString(line)
-	}
-}
-
-func getModURL(mod packwiz.ModToml, showVersions bool) string {
-	var modURL string
-
-	if mod.Update.Modrinth.ModID != "" {
-		modURL = "https://modrinth.com/mod/" + mod.Update.Modrinth.ModID
-		if showVersions && mod.Update.Modrinth.Version != "" {
-			modURL += "/version/" + mod.Update.Modrinth.Version
-		}
-	} else if mod.Update.Curseforge.ProjectID != 0 {
-		modURL = "https://www.curseforge.com/minecraft/mc-mods/"
-		if mod.Parse.ModID != "" {
-			modURL += mod.Parse.ModID
-		} else {
-			modURL += strconv.Itoa(mod.Update.Curseforge.ProjectID)
-		}
-		if showVersions && mod.Update.Curseforge.FileID != 0 {
-			modURL += "/files/" + strconv.Itoa(mod.Update.Curseforge.FileID)
-		}
-	} else if mod.Download.URL != "" {
-		modURL = mod.Download.URL
-	} else {
-		modURL = "#"
-	}
-
-	return modURL
-}
-
-// getPlatform determines the platform from the mod's TOML structure
-func getPlatform(mod packwiz.ModToml) string {
-	if mod.Update.Modrinth.ModID != "" {
-		return "Modrinth"
-	} else if mod.Update.Curseforge.ProjectID != 0 {
-		return "CurseForge"
-	}
-	return ""
+	buf.WriteString("\n")
 }

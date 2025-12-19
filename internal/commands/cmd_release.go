@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/Merith-TK/packwiz-wrapper/internal/modformat"
 )
 
 // CmdRelease provides release and changelog generation functionality
@@ -158,17 +160,23 @@ func readOrGenerateModlist(modlistPath string) ([]byte, error) {
 		return content, nil
 	}
 
-	// Generate new modlist
-	if err := generateModlist(true, true, false, false, false); err != nil {
-		return nil, fmt.Errorf("failed to generate mod list: %w", err)
-	}
+	// Generate new modlist content silently for changelog
+	return generateModlistForChangelog()
+}
 
-	// Read the newly generated modlist
-	content, err := os.ReadFile(modlistPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read generated modlist: %w", err)
+// generateModlistForChangelog generates modlist content as bytes without console output
+func generateModlistForChangelog() ([]byte, error) {
+	// Generate markdown content (showVersions=true, showAuthors=false, showPlatform=false for changelog)
+	opts := modformat.ModlistOptions{
+		ShowVersions: true,
+		ShowAuthors:  false,
+		ShowPlatform: false,
 	}
-	return content, nil
+	content, err := generateModlistContent(opts)
+	if err != nil {
+		return nil, err
+	}
+	return []byte(content), nil
 }
 
 func generateReleaseFiles(formats ...string) error {
