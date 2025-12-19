@@ -160,12 +160,6 @@ func readOrGenerateModlist(modlistPath string) ([]byte, error) {
 		return content, nil
 	}
 
-	// Generate new modlist content silently for changelog
-	return generateModlistForChangelog()
-}
-
-// generateModlistForChangelog generates modlist content as bytes without console output
-func generateModlistForChangelog() ([]byte, error) {
 	// Generate markdown content (showVersions=true, showAuthors=false, showPlatform=false for changelog)
 	opts := modformat.ModlistOptions{
 		ShowVersions: true,

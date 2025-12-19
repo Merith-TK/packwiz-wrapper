@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Merith-TK/packwiz-wrapper/internal/commands/modlist"
 	"github.com/Merith-TK/packwiz-wrapper/internal/modformat"
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
@@ -71,7 +72,7 @@ Examples:
 				RawOutput:    rawOutput,
 				OnlyPrint:    onlyPrint,
 			}
-			return generateModlist(opts)
+			return modlist.GenerateModlist(opts)
 		}
 }
 
