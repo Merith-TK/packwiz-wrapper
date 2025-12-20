@@ -192,7 +192,7 @@ func javaInstall(args []string) error {
 	}
 
 	// Force download and install the specific version
-	_, err := java.InstallJavaWithProgress(majorVersion, nil)
+	_, err := java.InstallJava(majorVersion, nil)
 	if err != nil {
 		return fmt.Errorf("failed to install Java %d: %w", majorVersion, err)
 	}

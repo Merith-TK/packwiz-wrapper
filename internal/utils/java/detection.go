@@ -124,8 +124,8 @@ func ValidateJava(mcVersion string) error {
 	return nil
 }
 
-// GetOrInstallJavaWithProgress ensures a compatible Java version is available with progress reporting
-func GetOrInstallJavaWithProgress(mcVersion string, progress ProgressCallback) (*JavaVersion, error) {
+// GetJava ensures a compatible Java version is available with progress reporting
+func GetJava(mcVersion string, progress ProgressCallback) (*JavaVersion, error) {
 	// First try to find existing Java
 	if java, err := FindCompatibleJava(mcVersion); err == nil {
 		return java, nil
@@ -144,7 +144,7 @@ func GetOrInstallJavaWithProgress(mcVersion string, progress ProgressCallback) (
 	reportProgress(fmt.Sprintf("No compatible Java found for Minecraft %s", mcVersion))
 	reportProgress(fmt.Sprintf("Downloading Java %d...", requiredVersion))
 
-	javaPath, err := InstallJavaWithProgress(requiredVersion, progress)
+	javaPath, err := InstallJava(requiredVersion, progress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download Java %d: %w", requiredVersion, err)
 	}

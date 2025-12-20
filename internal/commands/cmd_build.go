@@ -16,7 +16,7 @@ func CmdBuild() (names []string, shortHelp, longHelp string, execute func([]stri
 		`Usage:
   pw build <format> [options]
 
-Formats: cf, mr, mmc, technic, server, all
+Formats: cf (curseforge), mr (modrinth), mmc (multimc), technic, server, all
 
 Options:
   --local, -l         - Use local path for MultiMC (default: remote URL)

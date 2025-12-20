@@ -16,8 +16,8 @@ import (
 	"github.com/Merith-TK/utils/pkg/archive"
 )
 
-// InstallJavaWithProgress downloads and extracts a Java runtime with progress reporting
-func InstallJavaWithProgress(majorVersion int, progress ProgressCallback) (string, error) {
+// InstallJava downloads and extracts a Java runtime with progress reporting
+func InstallJava(majorVersion int, progress ProgressCallback) (string, error) {
 	if !IsValidJavaVersion(majorVersion) {
 		return "", fmt.Errorf("unsupported Java version: %d (supported: %v)", majorVersion, SupportedJavaVersions)
 	}
@@ -54,13 +54,13 @@ func InstallJavaWithProgress(majorVersion int, progress ProgressCallback) (strin
 
 	zipPath := filepath.Join(javaDir, filename)
 	reportProgress("Downloading Java...")
-	if err := downloadFileWithProgress(downloadURL, zipPath, progress); err != nil {
+	if err := downloadFile(downloadURL, zipPath, progress); err != nil {
 		return "", fmt.Errorf("failed to download Java: %w", err)
 	}
 
 	reportProgress("Extracting Java...")
 	// Extract Java
-	if err := extractJavaZipWithProgress(zipPath, versionDir, progress); err != nil {
+	if err := extractJavaZip(zipPath, versionDir, progress); err != nil {
 		os.Remove(zipPath) // Clean up on failure
 		return "", fmt.Errorf("failed to extract Java: %w", err)
 	}
@@ -149,8 +149,8 @@ func getHostOS() string {
 	}
 }
 
-// downloadFileWithProgress downloads a file from URL to the specified path with progress reporting
-func downloadFileWithProgress(url, filepath string, progress ProgressCallback) error {
+// downloadFile downloads a file from URL to the specified path with progress reporting
+func downloadFile(url, filepath string, progress ProgressCallback) error {
 	reportProgress := func(msg string) {
 		if progress != nil {
 			progress(msg)
@@ -186,8 +186,8 @@ func downloadFileWithProgress(url, filepath string, progress ProgressCallback) e
 	return nil
 }
 
-// extractJavaZipWithProgress extracts a Java JRE zip file with progress reporting
-func extractJavaZipWithProgress(zipPath, extractDir string, progress ProgressCallback) error {
+// extractJavaZip extracts a Java JRE zip file with progress reporting
+func extractJavaZip(zipPath, extractDir string, progress ProgressCallback) error {
 	reportProgress := func(msg string) {
 		if progress != nil {
 			progress(msg)

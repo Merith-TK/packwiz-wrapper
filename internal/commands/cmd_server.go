@@ -79,7 +79,7 @@ func serverSetup(args []string) error {
 	fmt.Printf("Setting up server for Minecraft %s...\n", mcVersion)
 
 	// Ensure Java is available (download if necessary)
-	javaVer, err := java.GetOrInstallJavaWithProgress(mcVersion, nil)
+	javaVer, err := java.GetJava(mcVersion, nil)
 	if err != nil {
 		fmt.Printf("Java setup warning: %v\n", err)
 		fmt.Println("Server may not start correctly without compatible Java")
