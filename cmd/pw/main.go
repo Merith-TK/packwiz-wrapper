@@ -92,12 +92,14 @@ func main() {
 	}
 
 	var packLocation string
+	var originalWd string
 	if needsPack {
 		wd, err := os.Getwd()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: failed to get working directory: %v\n", err)
 			os.Exit(1)
 		}
+		originalWd = wd
 
 		packLocation = utils.FindPackToml(wd)
 		if packLocation == "" {
@@ -105,26 +107,27 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Make sure you're in a packwiz project directory or one of its subdirectories\n")
 			os.Exit(1)
 		}
+
+		// Change to pack directory to ensure packwiz can resolve relative paths correctly
+		if packLocation != originalWd {
+			if err := os.Chdir(packLocation); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: failed to change to pack directory: %v\n", err)
+				os.Exit(1)
+			}
+		}
 	}
 
 	// Save original args and replace with the command we want to execute
 	originalArgs := os.Args
 	os.Args = append([]string{os.Args[0]}, args...)
 
-	// Only add --pack-file if it's not already present in args
-	hasPackFile := false
-	for _, arg := range os.Args {
-		if arg == "--pack-file" {
-			hasPackFile = true
-			break
-		}
-	}
-	if packLocation != "" && !hasPackFile {
-		os.Args = append(os.Args, "--pack-file", packLocation+"/pack.toml")
-	}
-
 	// Call packwiz directly
 	packwiz.PackwizExecute()
+
+	// Restore original working directory if we changed it
+	if originalWd != "" && packLocation != originalWd {
+		os.Chdir(originalWd)
+	}
 
 	// Restore original args (though we probably won't get here)
 	os.Args = originalArgs
