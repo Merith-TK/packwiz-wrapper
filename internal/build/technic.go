@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils/java"
 )
@@ -159,7 +158,7 @@ func installModsForTechnic(technicDir, packLocation string) error {
 		return fmt.Errorf("failed to load pack config: %w", err)
 	}
 
-	mcVersion := getMinecraftVersionTechnic(packToml)
+	mcVersion := utils.GetMinecraftVersion(packToml)
 	javaVer, err := java.FindCompatibleJava(mcVersion)
 	if err != nil {
 		return fmt.Errorf("no compatible Java found for Minecraft %s: %w", mcVersion, err)
@@ -217,13 +216,4 @@ func cleanupTechnicFiles(technicDir string) error {
 	}
 
 	return nil
-}
-
-// getMinecraftVersionTechnic gets the Minecraft version from pack.toml
-func getMinecraftVersionTechnic(packToml *packwiz.PackToml) string {
-	// Prefer versions.minecraft, fallback to mc-version
-	if packToml.Versions.Minecraft != "" {
-		return packToml.Versions.Minecraft
-	}
-	return packToml.McVersion
 }

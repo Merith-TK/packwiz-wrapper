@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils/java"
 )
@@ -183,7 +182,7 @@ func installServerMods(serverDir, packLocation string) error {
 		return fmt.Errorf("failed to load pack config: %w", err)
 	}
 
-	mcVersion := getMinecraftVersionServer(packToml)
+	mcVersion := utils.GetMinecraftVersion(packToml)
 	javaVer, err := java.FindCompatibleJava(mcVersion)
 	if err != nil {
 		return fmt.Errorf("no compatible Java found for Minecraft %s: %w", mcVersion, err)
@@ -255,13 +254,4 @@ level-type=minecraft\:normal`
 	}
 
 	return nil
-}
-
-// getMinecraftVersionServer gets the Minecraft version from pack.toml
-func getMinecraftVersionServer(packToml *packwiz.PackToml) string {
-	// Prefer versions.minecraft, fallback to mc-version
-	if packToml.Versions.Minecraft != "" {
-		return packToml.Versions.Minecraft
-	}
-	return packToml.McVersion
 }

@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils/java"
 )
@@ -124,9 +123,9 @@ func javaStatus(args []string) error {
 		return nil
 	}
 
-	mcVersion := getMinecraftVersionJava(packToml)
+	mcVersion := utils.GetMinecraftVersion(packToml)
 	required := java.GetRequiredJavaVersion(mcVersion)
-	strict := java.GetStrictJavaVersion(mcVersion)
+	strict := java.GetMinimumJavaVersion(mcVersion)
 
 	fmt.Printf("Pack: %s\n", packToml.Name)
 	fmt.Printf("Minecraft Version: %s\n", mcVersion)
@@ -193,7 +192,7 @@ func javaInstall(args []string) error {
 	}
 
 	// Force download and install the specific version
-	_, err := java.DownloadAndInstallJava(majorVersion)
+	_, err := java.InstallJavaWithProgress(majorVersion, nil)
 	if err != nil {
 		return fmt.Errorf("failed to install Java %d: %w", majorVersion, err)
 	}
@@ -292,14 +291,6 @@ func isManagerJava(javaPath string) bool {
 	dataDir := java.GetDataDirectory()
 	managedJavaDir := filepath.Join(dataDir, "java")
 	return filepath.HasPrefix(javaPath, managedJavaDir)
-}
-
-func getMinecraftVersionJava(packToml *packwiz.PackToml) string {
-	// Prefer versions.minecraft, fallback to mc-version
-	if packToml.Versions.Minecraft != "" {
-		return packToml.Versions.Minecraft
-	}
-	return packToml.McVersion
 }
 
 // isVersionNumber checks if the argument is a Java version number (8, 11, 17, 21, etc.)

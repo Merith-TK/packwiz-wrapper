@@ -16,13 +16,8 @@ import (
 	"github.com/Merith-TK/utils/pkg/archive"
 )
 
-// DownloadAndInstallJava downloads and extracts a Java runtime
-func DownloadAndInstallJava(majorVersion int) (string, error) {
-	return DownloadAndInstallJavaWithProgress(majorVersion, nil)
-}
-
-// DownloadAndInstallJavaWithProgress downloads and extracts a Java runtime with progress reporting
-func DownloadAndInstallJavaWithProgress(majorVersion int, progress ProgressCallback) (string, error) {
+// InstallJavaWithProgress downloads and extracts a Java runtime with progress reporting
+func InstallJavaWithProgress(majorVersion int, progress ProgressCallback) (string, error) {
 	if !IsValidJavaVersion(majorVersion) {
 		return "", fmt.Errorf("unsupported Java version: %d (supported: %v)", majorVersion, SupportedJavaVersions)
 	}

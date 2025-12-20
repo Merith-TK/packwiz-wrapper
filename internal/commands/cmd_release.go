@@ -41,9 +41,7 @@ func executeRelease(args []string) error {
 	// Handle special commands
 	switch args[0] {
 	case "changelog":
-		return changelogOnly()
-	case "files":
-		return filesOnly()
+		return generateChangelog()
 	default:
 		return releaseWithFormats(args)
 	}
@@ -54,16 +52,6 @@ func fullRelease() error {
 	if err := generateChangelog(); err != nil {
 		return fmt.Errorf("failed to generate changelog: %w", err)
 	}
-	return generateReleaseFiles("all")
-}
-
-// changelogOnly generates only the changelog
-func changelogOnly() error {
-	return generateChangelog()
-}
-
-// filesOnly generates all export formats without changelog
-func filesOnly() error {
 	return generateReleaseFiles("all")
 }
 

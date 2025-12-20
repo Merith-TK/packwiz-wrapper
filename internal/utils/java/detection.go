@@ -40,8 +40,8 @@ func GetRequiredJavaVersion(mcVersion string) int {
 	}
 }
 
-// GetStrictJavaVersion returns the strict minimum Java version
-func GetStrictJavaVersion(mcVersion string) int {
+// GetMinimumJavaVersion returns the strict minimum Java version
+func GetMinimumJavaVersion(mcVersion string) int {
 	version := parseMinecraftVersion(mcVersion)
 
 	if version.Compare("1.17") >= 0 {
@@ -79,7 +79,7 @@ func FindJavaInstallations() ([]JavaVersion, error) {
 // FindCompatibleJava finds a Java installation compatible with the given Minecraft version
 func FindCompatibleJava(mcVersion string) (*JavaVersion, error) {
 	required := GetRequiredJavaVersion(mcVersion)
-	strict := GetStrictJavaVersion(mcVersion)
+	strict := GetMinimumJavaVersion(mcVersion)
 
 	installations, err := FindJavaInstallations()
 	if err != nil {
@@ -124,13 +124,8 @@ func ValidateJava(mcVersion string) error {
 	return nil
 }
 
-// EnsureJava ensures a compatible Java version is available, downloading if necessary
-func EnsureJava(mcVersion string) (*JavaVersion, error) {
-	return EnsureJavaWithProgress(mcVersion, nil)
-}
-
-// EnsureJavaWithProgress ensures a compatible Java version is available with progress reporting
-func EnsureJavaWithProgress(mcVersion string, progress ProgressCallback) (*JavaVersion, error) {
+// GetOrInstallJavaWithProgress ensures a compatible Java version is available with progress reporting
+func GetOrInstallJavaWithProgress(mcVersion string, progress ProgressCallback) (*JavaVersion, error) {
 	// First try to find existing Java
 	if java, err := FindCompatibleJava(mcVersion); err == nil {
 		return java, nil
@@ -149,7 +144,7 @@ func EnsureJavaWithProgress(mcVersion string, progress ProgressCallback) (*JavaV
 	reportProgress(fmt.Sprintf("No compatible Java found for Minecraft %s", mcVersion))
 	reportProgress(fmt.Sprintf("Downloading Java %d...", requiredVersion))
 
-	javaPath, err := DownloadAndInstallJavaWithProgress(requiredVersion, progress)
+	javaPath, err := InstallJavaWithProgress(requiredVersion, progress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download Java %d: %w", requiredVersion, err)
 	}

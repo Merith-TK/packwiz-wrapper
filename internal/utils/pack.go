@@ -61,6 +61,15 @@ func LoadPackConfig(packDir string) (*packwiz.PackToml, string, error) {
 	return &packToml, packLocation, nil
 }
 
+// GetMinecraftVersion extracts the Minecraft version from pack.toml
+// Prefers versions.minecraft, falls back to mc-version
+func GetMinecraftVersion(packToml *packwiz.PackToml) string {
+	if packToml.Versions.Minecraft != "" {
+		return packToml.Versions.Minecraft
+	}
+	return packToml.McVersion
+}
+
 // DetectRemotePackURL tries to detect the remote pack URL from git
 // Returns the raw URL to pack.toml in the remote repository
 func DetectRemotePackURL(packLocation string) (string, error) {
