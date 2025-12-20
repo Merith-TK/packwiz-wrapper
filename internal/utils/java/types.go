@@ -51,8 +51,14 @@ func getJavaExecutablePath(javaDir string) string {
 
 // getManagedJavaPath returns the installation directory for a managed Java version
 func getManagedJavaPath(majorVersion int) string {
-	dataDir := getDataDirectory()
+	dataDir := GetDataDirectory()
 	return filepath.Join(dataDir, "java", fmt.Sprintf("java-%d", majorVersion))
+}
+
+// GetDataDirectory returns the platform-specific data directory for storing Java installations
+// This is exported so other packages can use the same directory structure
+func GetDataDirectory() string {
+	return getDataDirectory()
 }
 
 // getDataDirectory returns the platform-specific data directory for storing Java installations
@@ -62,19 +68,19 @@ func getDataDirectory() string {
 	switch runtime.GOOS {
 	case "windows":
 		if appData := os.Getenv("APPDATA"); appData != "" {
-			dataDir = filepath.Join(appData, "PackWrap")
+			dataDir = filepath.Join(appData, "xyz.merith.packwrap")
 		} else {
-			dataDir = filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Roaming", "PackWrap")
+			dataDir = filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Roaming", "xyz.merith.packwrap")
 		}
 	case "darwin":
 		if home := os.Getenv("HOME"); home != "" {
-			dataDir = filepath.Join(home, "Library", "Application Support", "PackWrap")
+			dataDir = filepath.Join(home, "Library", "Application Support", "xyz.merith.packwrap")
 		}
 	case "linux":
 		if xdgData := os.Getenv("XDG_DATA_HOME"); xdgData != "" {
-			dataDir = filepath.Join(xdgData, "packwrap")
+			dataDir = filepath.Join(xdgData, "xyz.merith.packwrap")
 		} else if home := os.Getenv("HOME"); home != "" {
-			dataDir = filepath.Join(home, ".local", "share", "packwrap")
+			dataDir = filepath.Join(home, ".local", "share", "xyz.merith.packwrap")
 		}
 	}
 

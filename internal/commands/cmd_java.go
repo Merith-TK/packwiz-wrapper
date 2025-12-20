@@ -10,6 +10,7 @@ import (
 
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils/java"
 )
 
 // CmdJava provides Java installation management
@@ -74,7 +75,7 @@ func javaList(args []string) error {
 	fmt.Println("☕ Java Installations")
 	fmt.Println("===================")
 
-	installations, err := utils.FindJavaInstallations()
+	installations, err := java.FindJavaInstallations()
 	if err != nil {
 		return fmt.Errorf("failed to find Java installations: %w", err)
 	}
@@ -124,8 +125,8 @@ func javaStatus(args []string) error {
 	}
 
 	mcVersion := getMinecraftVersionJava(packToml)
-	required := utils.GetRequiredJavaVersion(mcVersion)
-	strict := utils.GetStrictJavaVersion(mcVersion)
+	required := java.GetRequiredJavaVersion(mcVersion)
+	strict := java.GetStrictJavaVersion(mcVersion)
 
 	fmt.Printf("Pack: %s\n", packToml.Name)
 	fmt.Printf("Minecraft Version: %s\n", mcVersion)
@@ -133,10 +134,10 @@ func javaStatus(args []string) error {
 	fmt.Println()
 
 	// Check current Java compatibility
-	if java, err := utils.FindCompatibleJava(mcVersion); err == nil {
-		fmt.Printf("✅ Compatible Java found: %s (version %d)\n", java.Version, java.Major)
-		fmt.Printf("   Path: %s\n", java.Path)
-		if java.Major == required {
+	if javaVer, err := java.FindCompatibleJava(mcVersion); err == nil {
+		fmt.Printf("✅ Compatible Java found: %s (version %d)\n", javaVer.Version, javaVer.Major)
+		fmt.Printf("   Path: %s\n", javaVer.Path)
+		if javaVer.Major == required {
 			fmt.Println("   Status: Perfect match! 🎯")
 		} else {
 			fmt.Println("   Status: Compatible but not optimal")
@@ -173,7 +174,7 @@ func javaInstall(args []string) error {
 	fmt.Printf("Installing Java %d...\n", majorVersion)
 
 	// Check if already installed
-	dataDir := getDataDirectory()
+	dataDir := java.GetDataDirectory()
 	javaDir := filepath.Join(dataDir, "java", fmt.Sprintf("java-%d", majorVersion))
 	javaExe := filepath.Join(javaDir, "bin", "java")
 	if runtime.GOOS == "windows" {
@@ -182,30 +183,30 @@ func javaInstall(args []string) error {
 
 	if _, err := os.Stat(javaExe); err == nil {
 		// Get version info of existing installation
-		java, err := utils.DetectJavaVersion(javaExe)
+		javaVer, err := java.DetectJavaVersion(javaExe)
 		if err == nil {
 			fmt.Printf("✅ Java %d is already installed!\n", majorVersion)
-			fmt.Printf("   Version: %s\n", java.Version)
-			fmt.Printf("   Path: %s\n", java.Path)
+			fmt.Printf("   Version: %s\n", javaVer.Version)
+			fmt.Printf("   Path: %s\n", javaVer.Path)
 			return nil
 		}
 	}
 
 	// Force download and install the specific version
-	_, err := utils.DownloadAndInstallJava(majorVersion)
+	_, err := java.DownloadAndInstallJava(majorVersion)
 	if err != nil {
 		return fmt.Errorf("failed to install Java %d: %w", majorVersion, err)
 	}
 
 	// Detect the installed Java version
-	java, err := utils.DetectJavaVersion(javaExe)
+	javaVer, err := java.DetectJavaVersion(javaExe)
 	if err != nil {
 		return fmt.Errorf("failed to validate installed Java: %w", err)
 	}
 
 	fmt.Printf("✅ Java %d installed successfully!\n", majorVersion)
-	fmt.Printf("   Version: %s\n", java.Version)
-	fmt.Printf("   Path: %s\n", java.Path)
+	fmt.Printf("   Version: %s\n", javaVer.Version)
+	fmt.Printf("   Path: %s\n", javaVer.Path)
 
 	return nil
 }
@@ -231,7 +232,7 @@ func javaRemove(args []string) error {
 	}
 
 	// Get managed Java directory
-	dataDir := getDataDirectory()
+	dataDir := java.GetDataDirectory()
 	javaDir := filepath.Join(dataDir, "java", fmt.Sprintf("java-%d", majorVersion))
 
 	if _, err := os.Stat(javaDir); os.IsNotExist(err) {
@@ -269,7 +270,7 @@ func javaPath(args []string) error {
 	}
 
 	// Get managed Java directory
-	dataDir := getDataDirectory()
+	dataDir := java.GetDataDirectory()
 	javaDir := filepath.Join(dataDir, "java", fmt.Sprintf("java-%d", majorVersion))
 
 	javaExe := filepath.Join(javaDir, "bin", "java")
@@ -288,33 +289,9 @@ func javaPath(args []string) error {
 // Helper functions
 
 func isManagerJava(javaPath string) bool {
-	dataDir := getDataDirectory()
+	dataDir := java.GetDataDirectory()
 	managedJavaDir := filepath.Join(dataDir, "java")
 	return filepath.HasPrefix(javaPath, managedJavaDir)
-}
-
-func getDataDirectory() string {
-	switch runtime.GOOS {
-	case "windows":
-		if appData := os.Getenv("APPDATA"); appData != "" {
-			return filepath.Join(appData, "xyz.merith.packwrap")
-		}
-		return filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Roaming", "xyz.merith.packwrap")
-	case "darwin":
-		if home := os.Getenv("HOME"); home != "" {
-			return filepath.Join(home, "Library", "Application Support", "xyz.merith.packwrap")
-		}
-	case "linux":
-		if xdgData := os.Getenv("XDG_DATA_HOME"); xdgData != "" {
-			return filepath.Join(xdgData, "xyz.merith.packwrap")
-		}
-		if home := os.Getenv("HOME"); home != "" {
-			return filepath.Join(home, ".local", "share", "xyz.merith.packwrap")
-		}
-	}
-
-	// Fallback to current directory
-	return filepath.Join(".", ".packwrap-data")
 }
 
 func getMinecraftVersionJava(packToml *packwiz.PackToml) string {
@@ -347,7 +324,7 @@ func getJavaExecutablePath(version string) (string, error) {
 	}
 
 	// Get managed Java directory
-	dataDir := getDataDirectory()
+	dataDir := java.GetDataDirectory()
 	javaDir := filepath.Join(dataDir, "java", fmt.Sprintf("java-%d", majorVersion))
 
 	javaExe := filepath.Join(javaDir, "bin", "java")

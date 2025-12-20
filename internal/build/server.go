@@ -9,6 +9,7 @@ import (
 
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils/java"
 )
 
 // ExportServer exports the pack as a server pack
@@ -183,15 +184,15 @@ func installServerMods(serverDir, packLocation string) error {
 	}
 
 	mcVersion := getMinecraftVersionServer(packToml)
-	java, err := utils.FindCompatibleJava(mcVersion)
+	javaVer, err := java.FindCompatibleJava(mcVersion)
 	if err != nil {
 		return fmt.Errorf("no compatible Java found for Minecraft %s: %w", mcVersion, err)
 	}
 
-	fmt.Printf("Using Java %s for mod installation\n", java.Version)
+	fmt.Printf("Using Java %s for mod installation\n", javaVer.Version)
 
 	// Run packwiz installer with server flag and no-gui mode
-	cmd := exec.Command(java.Path, "-jar", "packwiz-installer-bootstrap.jar", "pack.toml", "-s", "server", "-g")
+	cmd := exec.Command(javaVer.Path, "-jar", "packwiz-installer-bootstrap.jar", "pack.toml", "-s", "server", "-g")
 	cmd.Dir = serverDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

@@ -10,6 +10,7 @@ import (
 	"github.com/Merith-TK/packwiz-wrapper/internal/build"
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils/java"
 )
 
 // CmdServer provides comprehensive server management functionality
@@ -78,13 +79,13 @@ func serverSetup(args []string) error {
 	fmt.Printf("Setting up server for Minecraft %s...\n", mcVersion)
 
 	// Ensure Java is available (download if necessary)
-	java, err := utils.EnsureJava(mcVersion)
+	javaVer, err := java.EnsureJava(mcVersion)
 	if err != nil {
 		fmt.Printf("Java setup warning: %v\n", err)
 		fmt.Println("Server may not start correctly without compatible Java")
 		// Continue anyway - user might have Java in PATH
 	} else {
-		fmt.Printf("Using Java %s (version %d)\n", java.Version, java.Major)
+		fmt.Printf("Using Java %s (version %d)\n", javaVer.Version, javaVer.Major)
 	}
 
 	// Create server run directory
@@ -131,9 +132,9 @@ func serverStart(args []string) error {
 		fmt.Printf("Warning: could not load pack config: %v\n", err)
 	} else {
 		mcVersion := getMinecraftVersion(packToml)
-		if java, err := utils.FindCompatibleJava(mcVersion); err == nil {
-			fmt.Printf("Using Java %s for Minecraft %s\n", java.Version, mcVersion)
-			javaCmd = java.Path
+		if javaVer, err := java.FindCompatibleJava(mcVersion); err == nil {
+			fmt.Printf("Using Java %s for Minecraft %s\n", javaVer.Version, mcVersion)
+			javaCmd = javaVer.Path
 		} else {
 			fmt.Printf("Java warning: %v\n", err)
 		}
@@ -214,8 +215,8 @@ func serverStatus(args []string) error {
 		}
 
 		// Check Java compatibility
-		if java, err := utils.FindCompatibleJava(mcVersion); err == nil {
-			fmt.Printf("Java: %s (compatible)\n", java.Version)
+		if javaVer, err := java.FindCompatibleJava(mcVersion); err == nil {
+			fmt.Printf("Java: %s (compatible)\n", javaVer.Version)
 		} else {
 			fmt.Printf("Java: ❌ %v\n", err)
 		}
@@ -302,9 +303,9 @@ func installMods(runDir, packLocation string) error {
 		var packToml packwiz.PackToml
 		if err := toml.Unmarshal(data, &packToml); err == nil {
 			mcVersion := getMinecraftVersion(&packToml)
-			if java, err := utils.FindCompatibleJava(mcVersion); err == nil {
-				javaCmd = java.Path
-				fmt.Printf("Using Java %s for packwiz installer\n", java.Version)
+			if javaVer, err := java.FindCompatibleJava(mcVersion); err == nil {
+				javaCmd = javaVer.Path
+				fmt.Printf("Using Java %s for packwiz installer\n", javaVer.Version)
 			}
 		}
 	}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/Merith-TK/packwiz-wrapper/internal/packwiz"
 	"github.com/Merith-TK/packwiz-wrapper/internal/utils"
+	"github.com/Merith-TK/packwiz-wrapper/internal/utils/java"
 )
 
 // ExportTechnic exports the pack as a Technic pack
@@ -159,15 +160,15 @@ func installModsForTechnic(technicDir, packLocation string) error {
 	}
 
 	mcVersion := getMinecraftVersionTechnic(packToml)
-	java, err := utils.FindCompatibleJava(mcVersion)
+	javaVer, err := java.FindCompatibleJava(mcVersion)
 	if err != nil {
 		return fmt.Errorf("no compatible Java found for Minecraft %s: %w", mcVersion, err)
 	}
 
-	fmt.Printf("Using Java %s for mod installation\n", java.Version)
+	fmt.Printf("Using Java %s for mod installation\n", javaVer.Version)
 
 	// Run packwiz installer (without server flag to get all mods) with no-gui mode
-	cmd := exec.Command(java.Path, "-jar", "packwiz-installer-bootstrap.jar", "pack.toml", "-g")
+	cmd := exec.Command(javaVer.Path, "-jar", "packwiz-installer-bootstrap.jar", "pack.toml", "-g")
 	cmd.Dir = technicDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
