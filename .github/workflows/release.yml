@@ -43,5 +43,3 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CC_FOR_WINDOWS_AMD64: x86_64-w64-mingw32-gcc
-          CC_FOR_LINUX_ARM64: aarch64-linux-gnu-gcc
