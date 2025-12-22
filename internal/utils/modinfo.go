@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -91,24 +92,17 @@ func GetModrinthInfo(modID string) (*ModInfo, error) {
 	if project.Team != "" {
 		teamMembers, err := getModrinthTeam(project.Team)
 		if err == nil && len(teamMembers) > 0 {
-			// Find the owner or first member
+			// Collect all authors
+			var authors []string
 			for _, member := range teamMembers {
-				if member.Role == "Owner" || member.Role == "owner" {
-					if member.User.Name != "" {
-						author = member.User.Name
-					} else {
-						author = member.User.Username
-					}
-					break
+				if member.User.Name != "" {
+					authors = append(authors, member.User.Name)
+				} else if member.User.Username != "" {
+					authors = append(authors, member.User.Username)
 				}
 			}
-			// Fallback to first member if no owner found
-			if author == "Unknown" && len(teamMembers) > 0 {
-				if teamMembers[0].User.Name != "" {
-					author = teamMembers[0].User.Name
-				} else {
-					author = teamMembers[0].User.Username
-				}
+			if len(authors) > 0 {
+				author = strings.Join(authors, ", ")
 			}
 		}
 	}
