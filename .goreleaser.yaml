@@ -83,7 +83,7 @@ changelog:
 release:
   github:
     owner: Merith-TK
-    name: packwrap2
+    name: packwiz-wrapper
   draft: false
   prerelease: auto
   name_template: "PackWiz Wrapper v{{.Version}}"

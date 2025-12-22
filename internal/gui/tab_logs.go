@@ -13,7 +13,7 @@ import (
 func CreateLogsTab() fyne.CanvasObject {
 	// Initialize global log widget
 	GlobalLogWidget = widget.NewRichText()
-	GlobalLogWidget.ParseMarkdown("📋 **PackWrap2 GUI Started**\n\nWelcome! Application logs will appear here as you use the GUI.\n\n")
+	GlobalLogWidget.ParseMarkdown("📋 **Packwiz Wrapper GUI Started**\n\nWelcome! Application logs will appear here as you use the GUI.\n\n")
 	GlobalLogWidget.Wrapping = fyne.TextWrapWord
 
 	// Wrap logs in a scrollable container with proper sizing
@@ -36,10 +36,10 @@ func CreateLogsTab() fyne.CanvasObject {
 	// Use BorderContainer to give more space to the log area
 	content := container.NewBorder(
 		controlActions, // top
-		nil,           // bottom
-		nil,           // left
-		nil,           // right
-		logScroll,     // center - takes remaining space
+		nil,            // bottom
+		nil,            // left
+		nil,            // right
+		logScroll,      // center - takes remaining space
 	)
 
 	return content

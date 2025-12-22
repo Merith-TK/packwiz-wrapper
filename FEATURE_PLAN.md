@@ -37,7 +37,7 @@
 
 ### Project Structure
 ```
-packwrap2/
+packwiz-wrapper/
 ├── cmd/pw/                     # Main executable entry point
 ├── internal/
 │   ├── commands/               # CLI command implementations
